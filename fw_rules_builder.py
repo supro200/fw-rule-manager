@@ -35,7 +35,7 @@ ResultSheetName = "Result"
 # Max length of remark statement in ACL
 RemarkLenght = 90
 
-filename = "qos_master.xlsx"
+filename = "fw_rules.xlsx"
 qos_flows_sheet_name = "QoS Flows"
 dropdown_fields_sheet_name = "Dropdown Fields"
 
