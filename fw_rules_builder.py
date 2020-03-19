@@ -26,6 +26,8 @@ DestinationPortColumnName = "Destination Port"
 ReferenceColumnName = "Reference"
 ServiceColumnName = "Service"
 DescriptionColumnName = "Description"
+SourceZoneColumnName = "Source Zone"
+DestinationZoneColumnName = "Destination Zone"
 
 QoSClassColumnDropDownName = "QoS Class Name"
 
@@ -36,13 +38,13 @@ ResultSheetName = "Result"
 RemarkLenght = 90
 
 filename = "fw_rules_test_01.xlsx"
-qos_flows_sheet_name = "QoS Flows"
+traffic_flows_sheet_name = "Traffic Flows"
 dropdown_fields_sheet_name = "Dropdown Fields"
 
 
 # --------------------------------------- Define Classes to store data ---------------------------------------
 
-class clsQoSACL:
+class clsTrafficFlowACL:
     """QoS ACL Entry.
     ACL Entry has the following properties:
 
@@ -66,14 +68,14 @@ class clsQoSACL:
         self.QoSACLDescription = QoSACLDescription
         self.QoSACLPriority = QoSACLPriority
 
-
-class clsQoSClass:
-    def __init__(self, QoSClassName="", QoSACLScope="", QoSACLPriority="", QoSACLList=[]):
-        """Return a QoS Class object, Initialize with empty values"""
-        self.QoSClassName = QoSClassName
-        self.QoSACLScope = QoSACLScope
-        self.QoSACLPriority = QoSACLPriority
-        self.QoSACLList = QoSACLList
+#
+# class clsQoSClass:
+#     def __init__(self, QoSClassName="", QoSACLScope="", QoSACLPriority="", QoSACLList=[]):
+#         """Return a QoS Class object, Initialize with empty values"""
+#         self.QoSClassName = QoSClassName
+#         self.QoSACLScope = QoSACLScope
+#         self.QoSACLPriority = QoSACLPriority
+#         self.QoSACLList = QoSACLList
 
 #  --------------------------------------- Define functions  ---------------------------------------
 
@@ -96,38 +98,22 @@ def calcDottedWildcard(mask):
 
 
 # --------------------------------------- Define Procedures ---------------------------------------
-def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DestinationNetwork,
+def build_ACL(PolicyName, Protocol, SourceZone, SourceNetwork, SourceMaskLenth, DestinationZone, DestinationNetwork,
               DestinationMaskLength, DestinationPort):
 
     #  if Source Network is "any" then Source Network Mask should be empty
     if SourceNetwork == "any":
         SourceNetworkAndMask = " any"
-        SourceNXOSNetworkMask = ""
-    elif SourceMaskLenth == 32:
-        SourceNetworkAndMask = " host " + SourceNetwork
     else:
-        SourceNetworkAndMask = " " + SourceNetwork + " " + calcDottedWildcard(SourceMaskLenth)
-        SourceNXOSNetworkMask = calcDottedNetmask(SourceMaskLenth)
+        SourceNetworkAndMask = " " + SourceNetwork + "/" + str(SourceMaskLenth)
+
 
     # if Destination Network is "any" then Destination Network Mask should be empty
     if DestinationNetwork == "any":
         DestinationNetworkAndMask = " any"
-        DestinationNXOSNetworkMask = ""
-    elif DestinationMaskLength == 32:
-        DestinationNetworkAndMask = " host " + DestinationNetwork
     else:
-        DestinationNetworkAndMask = " " + DestinationNetwork + " " + calcDottedWildcard(DestinationMaskLength)
-        DestinationNXOSNetworkMask = calcDottedNetmask(DestinationMaskLength)
+        DestinationNetworkAndMask = " " + DestinationNetwork + "/" + str(DestinationMaskLength)
 
-    # check if Source Port is a range or a single port
-    if "-" in str(SourcePort):
-        SourcePort = str(SourcePort).replace("-", " ")
-        SourcePortCondition = " range "
-    elif (SourcePort == "n/a") or (SourcePort == "") or (SourcePort == "any"):
-        SourcePort = ""
-        SourcePortCondition = ""
-    else:
-        SourcePortCondition = " eq "
 
     # check if Destination Port is a range or a single port
     if "-" in str(DestinationPort):
@@ -150,11 +136,15 @@ def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DestinationN
         DestinationPortCondition = ""
 
     # build a ACL
-    resultACL = "permit" + " " + \
-                Protocol + \
+    resultACL = "security policies from-zone " +\
+                SourceZone+ \
+                " to-zone " + \
+                DestinationZone + \
+                " policy " +\
+                PolicyName.replace(" ", "_") + \
+                " match source-address" + \
                 SourceNetworkAndMask + \
-                SourcePortCondition + \
-                str(SourcePort) + \
+                " destination-address" + \
                 DestinationNetworkAndMask + \
                 DestinationPortCondition + \
                 str(DestinationPort)
@@ -171,10 +161,10 @@ def main():
     xl = pd.ExcelFile(filename)
     logging.debug("=====> sheet_names: ", xl.sheet_names)
     # Load data from QoS Flows Tab into dataframe
-    df = xl.parse(qos_flows_sheet_name)
+    df = xl.parse(traffic_flows_sheet_name)
     # Replace empty values with empty stings to avoid errors in processing data as strings
-    qos_flows_dataframe = df.replace(np.nan, '', regex=True)
-    print("Total records found in " + qos_flows_sheet_name + " sheet: " + str(len(qos_flows_dataframe['Reference'])))
+    traffic_flows_dataframe = df.replace(np.nan, '', regex=True)
+    print("Total records found in " + traffic_flows_sheet_name + " sheet: " + str(len(traffic_flows_dataframe['Reference'])))
 
     # ------------------------------------------------------------------------------------
     # Load data from Dropdown Fields Tab into dataframe - this is for matching QoS Class to DSCP, for example
@@ -182,23 +172,9 @@ def main():
     # Replace empty values with empty stings to avoid errors in processing data as strings
     dropdown_fields_dataframe = temp_df1.replace(np.nan, '', regex=True)
 
-    qos_class_to_dscp_mapping_list = []
-
-    for index, row in dropdown_fields_dataframe.iterrows():
-        if not (dropdown_fields_dataframe.ix[index, "QoS Class Name"] == ""):
-            qos_class_to_dscp_mapping_dict = {
-                "qos_class_name": dropdown_fields_dataframe.ix[index, "QoS Class Name"],
-                "qos_class_dscp": dropdown_fields_dataframe.ix[index, "Target DSCP"]
-            }
-            qos_class_to_dscp_mapping_list.append(qos_class_to_dscp_mapping_dict)
-
-    logging.debug("Found Classes to DCP mapping:")
-    for item in qos_class_to_dscp_mapping_list:
-        logging.debug(item)
-
     # --------------------- Parse Services ---------------------
     # Get a list of unique services - this will be used for grouping records into ACLs
-    services_list = np.unique(np.array(qos_flows_dataframe["Service"]))
+    services_list = np.unique(np.array(traffic_flows_dataframe["Service"]))
 
     # Convert list to string for correct logging output
     # https://stackoverflow.com/questions/44778/how-would-you-make-a-comma-separated-string-from-a-list-of-strings
@@ -206,28 +182,27 @@ def main():
 
     # --------------------- Parse QoS classes ---------------------
     # Get a list of unique services - this will be used for grouping records into ACLs
-    qos_classes_list = np.unique(np.array(qos_flows_dataframe["QoS Class"]))
+    traffic_classes_list = np.unique(np.array(traffic_flows_dataframe["QoS Class"]))
 
     # Convert list to string for correct logging output
     # https://stackoverflow.com/questions/44778/how-would-you-make-a-comma-separated-string-from-a-list-of-strings
-    logging.info("=====> qos_classes_list: " + ','.join(qos_classes_list))
-    # --------------------- Parse Areas/Scopes ---------------------
-    # Areas/Scopes, such as Access, M2M, Datacentre, Cloud, etc.
-    area_list = []
+    #logging.info("=====> traffic_classes_list: " + ','.join(traffic_classes_list))
+    # --------------------- Parse Actions ---------------------
+
+    action_list = []
 
     # Get Headers from the dataframe
-    headers_list = list(qos_flows_dataframe.columns.values)
+    headers_list = list(traffic_flows_dataframe.columns.values)
     # Search headers with 'Area' word and cut off first word 'Area' and last word which should be 'Return' or 'Entry'
-    # Result is an unique list of areas in area_list[]
+    # Result is an unique list of areas in action_list[]
     for header in headers_list:
-        if "Enable" in header:
-            temp_str = header.split(' ', 1)[1]
-            area_list.append(' '.join(temp_str.split(' ')[:-1]))
+        if ("Enable" in header) or ("Delete" in header):
+            action_list.append(header)
 
     # Make the values in the list unique
     # https://stackoverflow.com/questions/12897374/get-unique-values-from-a-list-in-python
-    area_list = list(set(area_list))
-    logging.debug("=====> area_list: " + ','.join(area_list))
+    action_list = list(set(action_list))
+    logging.debug("=====> action_list: " + ','.join(action_list))
 
     # --------------------------------------- Process dataframe ---------------------------------------
 
@@ -235,51 +210,36 @@ def main():
     acl_list = []
     # Search for Areas/Scopes and for each row generate separate ACL for every Area
     # headers_list - all dataframe headers
-    # area_list - all Areas/Scopes
+    # action_list - all Areas/Scopes
     for header in headers_list:
-        for area in area_list:
-            if area in header:
+        for action in action_list:
+            if action in header:
                 # Found header indicating the colunm is Area
                 # Get new dataframe where Area value is Yes
                 # resulting dataframe is area_dataframe which consists of only records relevant to this area
-                area_dataframe = df.loc[qos_flows_dataframe[header] == 'Yes']
+                area_dataframe = df.loc[traffic_flows_dataframe[header] == 'Yes']
                 logging.debug("=====> Found", len(area_dataframe['Reference']), "entries for area", header)
                 # process this Area-specific dataframe and generate ACLs
                 for index, row in area_dataframe.iterrows():
-                    # If the record indicates it is return traffic, swap destination and source IP, mask and port
-                    if "Return" in header:
-                        acl = clsQoSACL( \
+                        acl = clsTrafficFlowACL( \
                             build_ACL( \
-                                qos_flows_dataframe.ix[index, ProtocolColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationNetworkColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationPortColumnName], \
-                                qos_flows_dataframe.ix[index, SourceNetworkColumnName], \
-                                qos_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
-                                qos_flows_dataframe.ix[index, SourcePortColumnName]), \
-                            qos_flows_dataframe.ix[index, ServiceColumnName], \
-                            qos_flows_dataframe.ix[index, ReferenceColumnName], \
-                            qos_flows_dataframe.ix[index, QoSClassColumnName], \
-                            area, \
-                            qos_flows_dataframe.ix[index, DescriptionColumnName], \
+                                traffic_flows_dataframe.ix[index, ServiceColumnName], \
+                                traffic_flows_dataframe.ix[index, ProtocolColumnName], \
+                                traffic_flows_dataframe.ix[index, SourceZoneColumnName], \
+                                traffic_flows_dataframe.ix[index, SourceNetworkColumnName], \
+                                traffic_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
+                                traffic_flows_dataframe.ix[index, DestinationZoneColumnName], \
+                                traffic_flows_dataframe.ix[index, DestinationNetworkColumnName], \
+                                traffic_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
+                                traffic_flows_dataframe.ix[index, DestinationPortColumnName]), \
+                            traffic_flows_dataframe.ix[index, ServiceColumnName], \
+                            traffic_flows_dataframe.ix[index, ReferenceColumnName], \
+                            traffic_flows_dataframe.ix[index, QoSClassColumnName], \
+                            action, \
+                            traffic_flows_dataframe.ix[index, DescriptionColumnName], \
                             )
-                    else:
-                        acl = clsQoSACL( \
-                            build_ACL( \
-                                qos_flows_dataframe.ix[index, ProtocolColumnName], \
-                                qos_flows_dataframe.ix[index, SourceNetworkColumnName], \
-                                qos_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
-                                qos_flows_dataframe.ix[index, SourcePortColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationNetworkColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
-                                qos_flows_dataframe.ix[index, DestinationPortColumnName]), \
-                            qos_flows_dataframe.ix[index, ServiceColumnName], \
-                            qos_flows_dataframe.ix[index, ReferenceColumnName], \
-                            qos_flows_dataframe.ix[index, QoSClassColumnName], \
-                            area, \
-                            qos_flows_dataframe.ix[index, DescriptionColumnName], \
-                            )
-                    acl_list.append(acl)
+
+                        acl_list.append(acl)
 
 
     # --------------------------------------- 1. print ACLs ---------------------------------------
@@ -291,31 +251,32 @@ def main():
     # we will make sure that the output directory exists
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
-    for area in area_list:
-        with open(output_directory+ "/qos_output_area_"+ (area.replace(" ", "_")).lower()+".txt", 'w+') as out_file:
+    for action in action_list:
+        #print(action)
+        with open(output_directory+ "/qos_output_area_"+ (action.replace(" ", "_")).lower()+".txt", 'w+') as out_file:
             # Generate separate ACLs for each area/scope
-            area_banner = "\n!******************************* AREA: " + area + " *******************************"
+            action_banner = "\n!******************************* Action: " + action + " *******************************"
             # Only print this banner once - at the beginning
-            print_area_banner = True
+            print_action_banner = True
 
-            qos_class_object_list = []
-            for qos_class in qos_classes_list:
-                qos_class_acl_list = []
+            traffic_class_object_list = []
+            for qos_class in traffic_classes_list:
+                traffic_class_acl_list = []
                 for service in services_list:
                     service_banner = "\n!----------------------- SERVICE: " + service + " -----------------------\n"
-                    print_service_banner = True
-                    acl_header = "ip access-list extended " + area.replace(" ", "_") + "_QoS_" + service.replace(" ",
+                    print_service_banner = False
+                    acl_header = "ip access-list extended " + action.replace(" ", "_") + "_QoS_" + service.replace(" ",
                                                                                                                  "_") + "_Mark_ACL"
 
                     for acl_record in acl_list:
                         # Go throught all ACLs and only print those matching current service and area
-                        if (acl_record.QoSServiceName == service) and (acl_record.QoSACLScope == area) and (
+                        if (acl_record.QoSServiceName == service) and (acl_record.QoSACLScope == action) and (
                                 acl_record.QoSClassName == qos_class):
-                            if print_area_banner:
-                                print(area_banner)
-                                out_file.write(area_banner)
+                            if print_action_banner:
+                                print(action_banner)
+                                out_file.write(action_banner)
                                 # don't print the banner next time
-                                print_area_banner = False
+                                print_action_banner = False
                             if print_service_banner:
                                 print(service_banner)
                                 out_file.write(service_banner)
@@ -327,71 +288,75 @@ def main():
                             remark = textwrap.wrap(acl_record.QoSACLDescription, RemarkLenght, break_long_words=False)
                             if not (last_remark == remark):
                                 for line in remark:
-                                    print("  remark", line)
+                                  #  print("  remark", line)
                                     out_file.write(" remark "+ line + "\n")
                             last_remark = remark
-
-                            # Print ACL itself
-                            print(" ", acl_record.QoSACL)
-                            out_file.write(" "+ acl_record.QoSACL + "\n")
+                            if action == "Enable":
+                                # Print ACL itself
+                                print("set", acl_record.QoSACL)
+                                out_file.write("set"+ acl_record.QoSACL + "\n")
+                            elif action == "Delete":
+                                print("delete", acl_record.QoSACL)
+                                out_file.write("delete"+ acl_record.QoSACL + "\n")
                             # Add ACL to the QoS Class
-                            qos_class_acl_list.append(
-                                acl_record.QoSACLScope.replace(" ", "_") + "_QoS_" + acl_record.QoSServiceName.replace(" ",
-                                                                                                                       "_") + "_Mark_ACL")
-                # Get DSCP value for a class with name 'qos_class', such as Signalling, Gold, etc..
-                dscp_mapping = \
-                    next((item for item in qos_class_to_dscp_mapping_list if item["qos_class_name"] == qos_class), None)[
-                        'qos_class_dscp']
-                logging.debug("=====> qos_class: " + qos_class + " , qos_dscp mapping: " + dscp_mapping)
+                           # traffic_class_acl_list.append(
+                            #    acl_record.QoSACLScope.replace(" ", "_") + "_QoS_" + acl_record.QoSServiceName.replace(" ",
+                          #                                                                                             "_") + "_Mark_ACL")
+            #     # Get DSCP value for a class with name 'qos_class', such as Signalling, Gold, etc..
+            #     dscp_mapping = \
+            #         next((item for item in traffic_class_to_dscp_mapping_list if item["traffic_class_name"] == qos_class), None)[
+            #             'traffic_class_dscp']
+            #     logging.debug("=====> qos_class: " + qos_class + " , qos_dscp mapping: " + dscp_mapping)
+            #
+            #     # Build list of QoS class objects
+            #     # Make the values in the list unique
+            #     # https://stackoverflow.com/questions/12897374/get-unique-values-from-a-list-in-python
+            #     traffic_class_acl_list = list(set(traffic_class_acl_list))
+            #     traffic_class_object = clsQoSClass(qos_class, area, acl_record.QoSClassName.replace(" ", "_"),
+            #                                    traffic_class_acl_list)
+            #     traffic_class_object_list.append(traffic_class_object)
+            #
+            #
+            # # --------------------------------------- 2. print classes ---------------------------------------
+            # print_traffic_classes_banner = True
+            # traffic_classes_banner = "\n!---------------------------- QoS Classes ----------------------------"
+            #
+            # for traffic_class_object_item in traffic_class_object_list:
+            #     if not (traffic_class_object_item.QoSACLList == []):  # if the list of ACLs is not empty
+            #         if print_traffic_classes_banner:
+            #             print(traffic_classes_banner)
+            #             out_file.write("\n" + traffic_classes_banner + "\n")
+            #             # don't print the banner next time
+            #             print_traffic_classes_banner = False
+            #         print("class-map match-any " + traffic_class_object_item.QoSACLScope.replace(" ",
+            #                                                                                  "_") + "_QoS_" + traffic_class_object_item.QoSClassName + "_Mark_Class")
+            #         out_file.write("class-map match-any " + traffic_class_object_item.QoSACLScope.replace(" ",
+            #                                                                                  "_") + "_QoS_" + traffic_class_object_item.QoSClassName + "_Mark_Class" + "\n")
+            #         for qos_acl_object_item in traffic_class_object_item.QoSACLList:
+            #             print(" match access-group name " + qos_acl_object_item)
+            #             out_file.write(" match access-group name " + qos_acl_object_item + "\n")
+            #
+            #
+            # # --------------------------------------- 3. print marking policies ---------------------------------------
+            #
+            # print_qos_policies_banner = True
+            # qos_policies_banner = "\n!---------------------------- QoS Marking Policies ----------------------------"
+            #
+            # for traffic_class_object_item in traffic_class_object_list:
+            #     if not (traffic_class_object_item.QoSACLList == []):  # if the list of ACLs is not empty
+            #         if print_qos_policies_banner:
+            #             print(qos_policies_banner)
+            #             out_file.write(qos_policies_banner + "\n")
+            #             print("policy-map", traffic_class_object_item.QoSACLScope.replace(" ", "_") + "_Reclassify_Traffic")
+            #             out_file.write("policy-map" + traffic_class_object_item.QoSACLScope.replace(" ", "_") + "_Reclassify_Traffic" + "\n")
+            #             # don't print the banner next time
+            #             print_qos_policies_banner = False
+            #
+            #         print(" class " + traffic_class_object_item.QoSACLScope.replace(" ",
+            #                                                                     "_") + "_QoS_" + traffic_class_object_item.QoSClassName + "_Mark_Class")
+            #         out_file.write(" class " + traffic_class_object_item.QoSACLScope.replace(" ",
+            #                                                                     "_") + "_QoS_" + traffic_class_object_item.QoSClassName + "_Mark_Class" + "\n")
 
-                # Build list of QoS class objects
-                # Make the values in the list unique
-                # https://stackoverflow.com/questions/12897374/get-unique-values-from-a-list-in-python
-                qos_class_acl_list = list(set(qos_class_acl_list))
-                qos_class_object = clsQoSClass(qos_class, area, acl_record.QoSClassName.replace(" ", "_"),
-                                               qos_class_acl_list)
-                qos_class_object_list.append(qos_class_object)
-
-
-            # --------------------------------------- 2. print classes ---------------------------------------
-            print_qos_classes_banner = True
-            qos_classes_banner = "\n!---------------------------- QoS Classes ----------------------------"
-
-            for qos_class_object_item in qos_class_object_list:
-                if not (qos_class_object_item.QoSACLList == []):  # if the list of ACLs is not empty
-                    if print_qos_classes_banner:
-                        print(qos_classes_banner)
-                        out_file.write("\n" + qos_classes_banner + "\n")
-                        # don't print the banner next time
-                        print_qos_classes_banner = False
-                    print("class-map match-any " + qos_class_object_item.QoSACLScope.replace(" ",
-                                                                                             "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class")
-                    out_file.write("class-map match-any " + qos_class_object_item.QoSACLScope.replace(" ",
-                                                                                             "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class" + "\n")
-                    for qos_acl_object_item in qos_class_object_item.QoSACLList:
-                        print(" match access-group name " + qos_acl_object_item)
-                        out_file.write(" match access-group name " + qos_acl_object_item + "\n")
-
-
-            # --------------------------------------- 3. print marking policies ---------------------------------------
-
-            print_qos_policies_banner = True
-            qos_policies_banner = "\n!---------------------------- QoS Marking Policies ----------------------------"
-
-            for qos_class_object_item in qos_class_object_list:
-                if not (qos_class_object_item.QoSACLList == []):  # if the list of ACLs is not empty
-                    if print_qos_policies_banner:
-                        print(qos_policies_banner)
-                        out_file.write(qos_policies_banner + "\n")
-                        print("policy-map", qos_class_object_item.QoSACLScope.replace(" ", "_") + "_Reclassify_Traffic")
-                        out_file.write("policy-map" + qos_class_object_item.QoSACLScope.replace(" ", "_") + "_Reclassify_Traffic" + "\n")
-                        # don't print the banner next time
-                        print_qos_policies_banner = False
-
-                    print(" class " + qos_class_object_item.QoSACLScope.replace(" ",
-                                                                                "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class")
-                    out_file.write(" class " + qos_class_object_item.QoSACLScope.replace(" ",
-                                                                                "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class" + "\n")
 
 
 if __name__ == '__main__':
