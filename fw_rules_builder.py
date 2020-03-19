@@ -3,6 +3,8 @@ import numpy as np
 import textwrap
 import logging
 import os
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 import argparse
 output_directory = "_output"
 
@@ -18,7 +20,6 @@ ProtocolColumnName = "Protocol"
 SourceNetworkColumnName = "Source Network"
 SourceNetworkMaskColumnName = "Source Mask Length"
 SourcePortColumnName = "Source Port"
-DSCPColumnName = "DSCP"
 DestinationNetworkColumnName = "Destination Network"
 DestinationNetworkMaskColumnName = "Destination Mask Length"
 DestinationPortColumnName = "Destination Port"
@@ -27,7 +28,6 @@ ServiceColumnName = "Service"
 DescriptionColumnName = "Description"
 
 QoSClassColumnDropDownName = "QoS Class Name"
-QoSClassColumnDropDownDSCPName = "Target DSCP"
 
 QoSClassColumnName = "QoS Class"
 ResultSheetName = "Result"
@@ -35,7 +35,7 @@ ResultSheetName = "Result"
 # Max length of remark statement in ACL
 RemarkLenght = 90
 
-filename = "fw_rules.xlsx"
+filename = "fw_rules_test_01.xlsx"
 qos_flows_sheet_name = "QoS Flows"
 dropdown_fields_sheet_name = "Dropdown Fields"
 
@@ -68,11 +68,10 @@ class clsQoSACL:
 
 
 class clsQoSClass:
-    def __init__(self, QoSClassName="", QoSACLScope="", QoSACLPriority="", QoSACLList=[], QoSDSCPMarking=""):
+    def __init__(self, QoSClassName="", QoSACLScope="", QoSACLPriority="", QoSACLList=[]):
         """Return a QoS Class object, Initialize with empty values"""
         self.QoSClassName = QoSClassName
         self.QoSACLScope = QoSACLScope
-        self.QoSDSCPMarking = QoSDSCPMarking
         self.QoSACLPriority = QoSACLPriority
         self.QoSACLList = QoSACLList
 
@@ -97,7 +96,7 @@ def calcDottedWildcard(mask):
 
 
 # --------------------------------------- Define Procedures ---------------------------------------
-def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DSCP, DestinationNetwork,
+def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DestinationNetwork,
               DestinationMaskLength, DestinationPort):
 
     #  if Source Network is "any" then Source Network Mask should be empty
@@ -141,8 +140,6 @@ def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DSCP, Destin
         # DestinationPort = ""
         DestinationPortCondition = " eq "
 
-    if DSCP != "":
-        DSCP = " dscp " + DSCP
 
     if Protocol == "any":
         Protocol = "ip"
@@ -160,8 +157,7 @@ def build_ACL(Protocol, SourceNetwork, SourceMaskLenth, SourcePort, DSCP, Destin
                 str(SourcePort) + \
                 DestinationNetworkAndMask + \
                 DestinationPortCondition + \
-                str(DestinationPort) + \
-                DSCP
+                str(DestinationPort)
 
     logging.debug(resultACL.lower())
 
@@ -224,7 +220,7 @@ def main():
     # Search headers with 'Area' word and cut off first word 'Area' and last word which should be 'Return' or 'Entry'
     # Result is an unique list of areas in area_list[]
     for header in headers_list:
-        if "Area" in header:
+        if "Enable" in header:
             temp_str = header.split(' ', 1)[1]
             area_list.append(' '.join(temp_str.split(' ')[:-1]))
 
@@ -258,7 +254,6 @@ def main():
                                 qos_flows_dataframe.ix[index, DestinationNetworkColumnName], \
                                 qos_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
                                 qos_flows_dataframe.ix[index, DestinationPortColumnName], \
-                                qos_flows_dataframe.ix[index, DSCPColumnName], \
                                 qos_flows_dataframe.ix[index, SourceNetworkColumnName], \
                                 qos_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
                                 qos_flows_dataframe.ix[index, SourcePortColumnName]), \
@@ -275,7 +270,6 @@ def main():
                                 qos_flows_dataframe.ix[index, SourceNetworkColumnName], \
                                 qos_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
                                 qos_flows_dataframe.ix[index, SourcePortColumnName], \
-                                qos_flows_dataframe.ix[index, DSCPColumnName], \
                                 qos_flows_dataframe.ix[index, DestinationNetworkColumnName], \
                                 qos_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
                                 qos_flows_dataframe.ix[index, DestinationPortColumnName]), \
@@ -355,7 +349,7 @@ def main():
                 # https://stackoverflow.com/questions/12897374/get-unique-values-from-a-list-in-python
                 qos_class_acl_list = list(set(qos_class_acl_list))
                 qos_class_object = clsQoSClass(qos_class, area, acl_record.QoSClassName.replace(" ", "_"),
-                                               qos_class_acl_list, dscp_mapping)
+                                               qos_class_acl_list)
                 qos_class_object_list.append(qos_class_object)
 
 
@@ -398,8 +392,6 @@ def main():
                                                                                 "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class")
                     out_file.write(" class " + qos_class_object_item.QoSACLScope.replace(" ",
                                                                                 "_") + "_QoS_" + qos_class_object_item.QoSClassName + "_Mark_Class" + "\n")
-                    print("  set dscp " + qos_class_object_item.QoSDSCPMarking)
-                    out_file.write("  set dscp " + qos_class_object_item.QoSDSCPMarking + "\n")
 
 
 if __name__ == '__main__':
