@@ -168,9 +168,9 @@ def main():
 
     # ------------------------------------------------------------------------------------
     # Load data from Dropdown Fields Tab into dataframe - this is for matching QoS Class to DSCP, for example
-    temp_df1 = xl.parse(dropdown_fields_sheet_name)
+    #temp_df1 = xl.parse(dropdown_fields_sheet_name)
     # Replace empty values with empty stings to avoid errors in processing data as strings
-    dropdown_fields_dataframe = temp_df1.replace(np.nan, '', regex=True)
+    #dropdown_fields_dataframe = temp_df1.replace(np.nan, '', regex=True)
 
     # --------------------- Parse Services ---------------------
     # Get a list of unique services - this will be used for grouping records into ACLs
@@ -261,6 +261,7 @@ def main():
 
             traffic_class_object_list = []
             for qos_class in traffic_classes_list:
+                print(qos_class)
                 traffic_class_acl_list = []
                 for service in services_list:
                     service_banner = "\n!----------------------- SERVICE: " + service + " -----------------------\n"
