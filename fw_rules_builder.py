@@ -37,10 +37,13 @@ ResultSheetName = "Result"
 # Max length of remark statement in ACL
 RemarkLenght = 90
 
-filename = "fw_rules_test_01.xlsx"
+filename = "fw_rules_test_02.xlsx"
 traffic_flows_sheet_name = "Traffic Flows"
 dropdown_fields_sheet_name = "Dropdown Fields"
 
+ActionActive = "Active"
+ActionDeactivate = "Deactivate"
+ActionDelete = "Delete"
 
 # --------------------------------------- Define Classes to store data ---------------------------------------
 
@@ -96,10 +99,18 @@ def calcDottedWildcard(mask):
         255 - ((bits & 0xff000000) >> 24), 255 - ((bits & 0xff0000) >> 16), 255 - ((bits & 0xff00) >> 8),
         255 - (bits & 0xff))
 
+def define_application (Protocol, SourcePort, DestinationPort, Description):
+    application_name = ""
+    #print(Protocol, SourcePort, DestinationPort, Description)
+    DestinationPort=str(DestinationPort).replace(" ", "_")
+    application_name = f"set applications application {Protocol}_src_{SourcePort}_dst_{DestinationPort}".lower()
+    return application_name
 
 # --------------------------------------- Define Procedures ---------------------------------------
-def build_ACL(PolicyName, Protocol, SourceZone, SourceNetwork, SourceMaskLenth, DestinationZone, DestinationNetwork,
-              DestinationMaskLength, DestinationPort):
+def build_acl(PolicyName, Protocol, SourcePort, SourceZone, SourceNetwork, SourceMaskLenth, DestinationZone, DestinationNetwork,
+              DestinationMaskLength, DestinationPort, action, Description):
+
+    fw_type = "JUNOS"
 
     #  if Source Network is "any" then Source Network Mask should be empty
     if SourceNetwork == "any":
@@ -135,13 +146,24 @@ def build_ACL(PolicyName, Protocol, SourceZone, SourceNetwork, SourceMaskLenth, 
         SourceNetworkMask = ""
         DestinationPortCondition = ""
 
+    print(define_application(Protocol, SourcePort, DestinationPort, ""))
+
+    if action == ActionActive and fw_type == "JUNOS":
+        action_to_device_command = "set"
+    elif action == ActionDelete:
+        action_to_device_command = "delete"
+    elif action == ActionDeactivate:
+        action_to_device_command = "deactivate"
+
     # build a ACL
-    resultACL = "security policies from-zone " +\
+    resultACL = action_to_device_command + " security policies from-zone " +\
                 SourceZone+ \
                 " to-zone " + \
                 DestinationZone + \
-                " policy " +\
+                " policy " + \
                 PolicyName.replace(" ", "_") + \
+                " description " + \
+                 "\"" + Description + "\"" + \
                 " match source-address" + \
                 SourceNetworkAndMask + \
                 " destination-address" + \
@@ -150,6 +172,7 @@ def build_ACL(PolicyName, Protocol, SourceZone, SourceNetwork, SourceMaskLenth, 
                 str(DestinationPort)
 
     logging.debug(resultACL.lower())
+    print(resultACL)
 
     return resultACL.lower()
 
@@ -196,13 +219,17 @@ def main():
     # Search headers with 'Area' word and cut off first word 'Area' and last word which should be 'Return' or 'Entry'
     # Result is an unique list of areas in action_list[]
     for header in headers_list:
-        if ("Enable" in header) or ("Delete" in header):
+        if (ActionActive in header) or (ActionDelete in header):
             action_list.append(header)
+    # Special case when Action is Active and aet to No - deactivate
+    action_list.append(ActionDeactivate)
 
     # Make the values in the list unique
     # https://stackoverflow.com/questions/12897374/get-unique-values-from-a-list-in-python
     action_list = list(set(action_list))
     logging.debug("=====> action_list: " + ','.join(action_list))
+
+    print(action_list)
 
     # --------------------------------------- Process dataframe ---------------------------------------
 
@@ -211,32 +238,44 @@ def main():
     # Search for Areas/Scopes and for each row generate separate ACL for every Area
     # headers_list - all dataframe headers
     # action_list - all Areas/Scopes
-    for header in headers_list:
-        for action in action_list:
-            if action in header:
+   # for header in headers_list:
+    for action in action_list:
+    #        if action in header:
+
                 # Found header indicating the colunm is Area
                 # Get new dataframe where Area value is Yes
-                # resulting dataframe is area_dataframe which consists of only records relevant to this area
-                area_dataframe = df.loc[traffic_flows_dataframe[header] == 'Yes']
-                logging.debug("=====> Found", len(area_dataframe['Reference']), "entries for area", header)
+                # resulting dataframe is action_dataframe which consists of only records relevant to this area
+
+
+                #process special case when Active is set to No
+                if action == ActionDeactivate:
+                    action_dataframe = df.loc[traffic_flows_dataframe[ActionActive] == 'No']
+                    print(">>>>>>>>>>>>>deact")
+                else:
+                    action_dataframe = df.loc[traffic_flows_dataframe[action] == 'Yes']
+
+                #logging.debug("=====> Found", len(action_dataframe['Reference']), "entries for area", header)
                 # process this Area-specific dataframe and generate ACLs
-                for index, row in area_dataframe.iterrows():
+
+                for index, row in action_dataframe.iterrows():
                         acl = clsTrafficFlowACL( \
-                            build_ACL( \
+                            build_acl( \
                                 traffic_flows_dataframe.ix[index, ServiceColumnName], \
                                 traffic_flows_dataframe.ix[index, ProtocolColumnName], \
+                                traffic_flows_dataframe.ix[index, SourcePortColumnName], \
                                 traffic_flows_dataframe.ix[index, SourceZoneColumnName], \
                                 traffic_flows_dataframe.ix[index, SourceNetworkColumnName], \
                                 traffic_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
                                 traffic_flows_dataframe.ix[index, DestinationZoneColumnName], \
                                 traffic_flows_dataframe.ix[index, DestinationNetworkColumnName], \
                                 traffic_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
-                                traffic_flows_dataframe.ix[index, DestinationPortColumnName]), \
-                            traffic_flows_dataframe.ix[index, ServiceColumnName], \
-                            traffic_flows_dataframe.ix[index, ReferenceColumnName], \
-                            traffic_flows_dataframe.ix[index, QoSClassColumnName], \
-                            action, \
-                            traffic_flows_dataframe.ix[index, DescriptionColumnName], \
+                                traffic_flows_dataframe.ix[index, DestinationPortColumnName], action,
+                            traffic_flows_dataframe.ix[index, DescriptionColumnName]), \
+                            #traffic_flows_dataframe.ix[index, ServiceColumnName], \
+                            #traffic_flows_dataframe.ix[index, ReferenceColumnName], \
+                            #traffic_flows_dataframe.ix[index, QoSClassColumnName], \
+                                action, \
+                                traffic_flows_dataframe.ix[index, DescriptionColumnName], \
                             )
 
                         acl_list.append(acl)
@@ -261,13 +300,10 @@ def main():
 
             traffic_class_object_list = []
             for qos_class in traffic_classes_list:
-                print(qos_class)
+                #print(qos_class)
                 traffic_class_acl_list = []
                 for service in services_list:
                     service_banner = "\n!----------------------- SERVICE: " + service + " -----------------------\n"
-                    print_service_banner = False
-                    acl_header = "ip access-list extended " + action.replace(" ", "_") + "_QoS_" + service.replace(" ",
-                                                                                                                 "_") + "_Mark_ACL"
 
                     for acl_record in acl_list:
                         # Go throught all ACLs and only print those matching current service and area
@@ -281,8 +317,6 @@ def main():
                             if print_service_banner:
                                 print(service_banner)
                                 out_file.write(service_banner)
-                                print(acl_header)
-                                out_file.write(acl_header + "\n")
                                 print_service_banner = False
 
                             # Print ACL remark if not alredy printed
@@ -292,12 +326,15 @@ def main():
                                   #  print("  remark", line)
                                     out_file.write(" remark "+ line + "\n")
                             last_remark = remark
-                            if action == "Enable":
+                            if action == ActionActive:
                                 # Print ACL itself
                                 print("set", acl_record.QoSACL)
                                 out_file.write("set"+ acl_record.QoSACL + "\n")
-                            elif action == "Delete":
+                            elif action == ActionDelete:
                                 print("delete", acl_record.QoSACL)
+                                out_file.write("delete"+ acl_record.QoSACL + "\n")
+                            elif action == ActionDeactivate:
+                                print("deactivate", acl_record.QoSACL)
                                 out_file.write("delete"+ acl_record.QoSACL + "\n")
                             # Add ACL to the QoS Class
                            # traffic_class_acl_list.append(
