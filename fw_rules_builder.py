@@ -15,7 +15,7 @@ handlers = [logging.FileHandler('qos_config_builder.log'), logging.StreamHandler
 # handlers = [logging.StreamHandler()]
 logging.basicConfig(level=level, format=format, handlers=handlers)
 
-from classdefs import AccessRule, Application
+from classdefs import AccessRuleClass, ApplicationClass, AddressBookEntryClass
 from constdefs import *
 
 def main():
@@ -67,19 +67,19 @@ def main():
                 for index, row in action_dataframe.iterrows():
 
                     #app_definition = clsApplication()
-                    acl = AccessRule(traffic_flows_dataframe.ix[index, RuleColumnName], \
-                                     traffic_flows_dataframe.ix[index, DescriptionColumnName], \
-                                     action, \
-                                     traffic_flows_dataframe.ix[index, ProtocolColumnName], \
-                                     traffic_flows_dataframe.ix[index, SourcePortColumnName], \
-                                     traffic_flows_dataframe.ix[index, SourceZoneColumnName], \
-                                     traffic_flows_dataframe.ix[index, SourceNetworkColumnName], \
-                                     traffic_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
-                                     traffic_flows_dataframe.ix[index, DestinationZoneColumnName], \
-                                     traffic_flows_dataframe.ix[index, DestinationNetworkColumnName], \
-                                     traffic_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
-                                     traffic_flows_dataframe.ix[index, DestinationPortColumnName]
-                                     )
+                    acl = AccessRuleClass(traffic_flows_dataframe.ix[index, RuleColumnName], \
+                                          traffic_flows_dataframe.ix[index, DescriptionColumnName], \
+                                          action, \
+                                          traffic_flows_dataframe.ix[index, ProtocolColumnName], \
+                                          traffic_flows_dataframe.ix[index, SourcePortColumnName], \
+                                          traffic_flows_dataframe.ix[index, SourceZoneColumnName], \
+                                          traffic_flows_dataframe.ix[index, SourceNetworkColumnName], \
+                                          traffic_flows_dataframe.ix[index, SourceNetworkMaskColumnName], \
+                                          traffic_flows_dataframe.ix[index, DestinationZoneColumnName], \
+                                          traffic_flows_dataframe.ix[index, DestinationNetworkColumnName], \
+                                          traffic_flows_dataframe.ix[index, DestinationNetworkMaskColumnName], \
+                                          traffic_flows_dataframe.ix[index, DestinationPortColumnName]
+                                          )
 
                     acl_list.append(acl)
 
@@ -92,13 +92,17 @@ def main():
         os.mkdir(output_directory)
 
     for action in action_list:
-        print(f" -------------------- {action} --------------------")
+        print(f"\n# ------------------------------- {action} ---------------------------------")
         for acl in acl_list:
             if acl.Action == action:
-                app = Application(acl.Protocol, acl.SourcePort, acl.DestinationPort)
-                print(app.convert_to_device_format("JUNOS"))
-                print(acl.convert_to_device_format("JUNOS", app))
+                application_definition = ApplicationClass(acl.Protocol, acl.SourcePort, acl.DestinationPort)
+                address_book_definition = AddressBookEntryClass(acl.Name, acl.Description, acl.SourceNetworkAndMask, acl.DestinationNetworkAndMask)
 
+                print(f"# -------- {acl.Description} -------------")
+                if action == ActionActive:
+                    print(application_definition.convert_to_device_format("JUNOS"))
+                    print(address_book_definition.convert_to_device_format("JUNOS"))
+                print(acl.convert_to_device_format("JUNOS", application_definition, address_book_definition))
 
 if __name__ == '__main__':
     # argparse here 
