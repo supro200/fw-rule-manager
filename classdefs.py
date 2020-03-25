@@ -33,7 +33,13 @@ class AddressBookEntryClass:
     name = ""
 
     def __init__(
-        self, address_book_dataframe, Name="", Description="", SourceNetwork="", DestinationNetwork="", ):
+        self,
+        address_book_dataframe,
+        Name="",
+        Description="",
+        SourceNetwork="",
+        DestinationNetwork="",
+    ):
 
         address_book_dict = {}
         address_book_list = []
@@ -42,7 +48,10 @@ class AddressBookEntryClass:
 
         for address in SourceNetwork:
             try:
-                if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
+                if (
+                    ipaddress.IPv4Network(address).is_global
+                    or ipaddress.IPv4Network(address).is_private
+                ):
                     address_book_list.append(
                         {
                             "name": "net_" + address.replace("/", "_"),
@@ -52,12 +61,17 @@ class AddressBookEntryClass:
                     )
             except ValueError:
                 if address == "any":
-                    address_book_list = [{"name": "any", "value": "any", "direction": "source"}]
+                    address_book_list = [
+                        {"name": "any", "value": "any", "direction": "source"}
+                    ]
                 else:
-                     address_book_list.append(
+                    address_book_list.append(
                         {
                             "name": address,
-                            "value": address_book_dataframe.loc[address_book_dataframe[AddressBookEntryColumnName] == address][AddressBookNetworkColumnName].item(),
+                            "value": address_book_dataframe.loc[
+                                address_book_dataframe[AddressBookEntryColumnName]
+                                == address
+                            ][AddressBookNetworkColumnName].item(),
                             "direction": "source",
                         }
                     )
@@ -65,7 +79,10 @@ class AddressBookEntryClass:
         # -------------- Parse DestinationNetwork
         for address in DestinationNetwork:
             try:
-                if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
+                if (
+                    ipaddress.IPv4Network(address).is_global
+                    or ipaddress.IPv4Network(address).is_private
+                ):
                     address_book_list.append(
                         {
                             "name": "net_" + address.replace("/", "_"),
@@ -79,13 +96,16 @@ class AddressBookEntryClass:
                         {"name": "any", "value": "any", "direction": "destination"}
                     )
                 else:
-                        address_book_list.append(
-                            {
-                                "name": address,
-                                "value": address_book_dataframe.loc[address_book_dataframe[AddressBookEntryColumnName] == address][AddressBookNetworkColumnName].item(),
-                                "direction": "destination",
-                            }
-                        )
+                    address_book_list.append(
+                        {
+                            "name": address,
+                            "value": address_book_dataframe.loc[
+                                address_book_dataframe[AddressBookEntryColumnName]
+                                == address
+                            ][AddressBookNetworkColumnName].item(),
+                            "direction": "destination",
+                        }
+                    )
 
         address_book_dict["name"] = "addr_book_" + Name.lower().replace(" ", "_")
         address_book_dict["items"] = address_book_list

@@ -36,8 +36,12 @@ def main():
     address_book_dataframe = temp_df2.replace(np.nan, "", regex=True)
 
     print(f"--------------- Loaded Data Sources -------------------")
-    print(f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}")
-    print(f"records found in {address_book_sheet_name} sheet: {str(len(address_book_dataframe[AddressBookNetworkColumnName]))}")
+    print(
+        f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}"
+    )
+    print(
+        f"records found in {address_book_sheet_name} sheet: {str(len(address_book_dataframe[AddressBookNetworkColumnName]))}"
+    )
 
     # --------------------- Parse Actions ---------------------
 
@@ -61,7 +65,9 @@ def main():
     for action in action_list:
         # process special case when Active is set to No, deactivate the rule
         if action == ActionDeactivate:
-            action_dataframe = temp_df1.loc[traffic_flows_dataframe[ActionActive] == "No"]
+            action_dataframe = temp_df1.loc[
+                traffic_flows_dataframe[ActionActive] == "No"
+            ]
         else:
             action_dataframe = temp_df1.loc[traffic_flows_dataframe[action] == "Yes"]
 
@@ -91,7 +97,9 @@ def main():
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
 
-    print("\n ************************* Firewall configuration below ****************************")
+    print(
+        "\n ************************* Firewall configuration below ****************************"
+    )
 
     for action in action_list:
         print(
@@ -107,7 +115,7 @@ def main():
                     acl.Name,
                     acl.Description,
                     acl.SourceNetworkAndMask,
-                    acl.DestinationNetworkAndMask
+                    acl.DestinationNetworkAndMask,
                 )
 
                 print(f"# -------- {acl.Description} -------------")
