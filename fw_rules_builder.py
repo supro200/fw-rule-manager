@@ -101,6 +101,7 @@ def main():
                 traffic_flows_dataframe.ix[index, DestinationZoneColumnName],
                 traffic_flows_dataframe.ix[index, DestinationNetworkColumnName],
                 traffic_flows_dataframe.ix[index, DestinationPortColumnName],
+                traffic_flows_dataframe.ix[index, RuleActionColumnName],
             )
 
             acl_list.append(acl)

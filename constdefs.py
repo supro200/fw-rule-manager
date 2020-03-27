@@ -10,10 +10,9 @@ RuleColumnName = "Rule Name"
 DescriptionColumnName = "Description"
 SourceZoneColumnName = "Source Zone"
 DestinationZoneColumnName = "Destination Zone"
-
+RuleActionColumnName = "Action"
 ZoneNameColumnName = "Zone Name"
 ZoneSetColumnName = "Zone Set"
-
 
 AddressBookEntryColumnName = "Object Name"
 AddressBookNetworkColumnName = "Network"

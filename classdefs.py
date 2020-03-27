@@ -181,6 +181,7 @@ class AccessRuleClass:
         DestinationZone="",
         DestinationNetwork="",
         DestinationPort="",
+        RuleAction = ""
     ):
         """Return a ACL object, Initialize with empty values"""
 
@@ -189,6 +190,7 @@ class AccessRuleClass:
         self.Action = Action
         self.SourceZone = SourceZone
         self.DestinationZone = DestinationZone
+        self.RuleAction = RuleAction
 
         self.SourceNetworkAndMask = []
         self.DestinationNetworkAndMask = []
@@ -287,7 +289,7 @@ class AccessRuleClass:
                     f" application {application_definition.get_app_name()}"
                     f"\nset security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
-                    f" then permit"
+                    f" then {self.RuleAction}"
                     f"\nactivate security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
                 )
