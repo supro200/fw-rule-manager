@@ -17,7 +17,12 @@ handlers = [logging.FileHandler("qos_config_builder.log"), logging.StreamHandler
 # handlers = [logging.StreamHandler()]
 logging.basicConfig(level=level, format=format, handlers=handlers)
 
-from classdefs import AccessRuleClass, ApplicationClass, AddressBookEntryClass
+from classdefs import (
+    AccessRuleClass,
+    ApplicationClass,
+    AddressBookEntryClass,
+    ZoneClass,
+)
 from constdefs import *
 
 
@@ -34,6 +39,9 @@ def main():
 
     temp_df2 = xl.parse(address_book_sheet_name)
     address_book_dataframe = temp_df2.replace(np.nan, "", regex=True)
+
+    temp_df3 = xl.parse(zones_sheet_name)
+    zones_dataframe = temp_df3.replace(np.nan, "", regex=True)
 
     print(f"--------------- Loaded Data Sources -------------------")
     print(
@@ -66,10 +74,18 @@ def main():
         # process special case when Active is set to No, deactivate the rule
         if action == ActionDeactivate:
             action_dataframe = temp_df1.loc[
-                traffic_flows_dataframe[ActionActive] == "No"
+                (traffic_flows_dataframe[ActionActive] == "No")
+                & (traffic_flows_dataframe[ActionDelete] == "No")
             ]
-        else:
-            action_dataframe = temp_df1.loc[traffic_flows_dataframe[action] == "Yes"]
+        elif action == ActionActive:
+            action_dataframe = temp_df1.loc[
+                (traffic_flows_dataframe[action] == "Yes")
+                & (traffic_flows_dataframe[ActionDelete] == "No")
+            ]
+        elif action == ActionDelete:
+            action_dataframe = temp_df1.loc[
+                (traffic_flows_dataframe[ActionDelete] == "Yes")
+            ]
 
         for index, row in action_dataframe.iterrows():
 
@@ -94,8 +110,8 @@ def main():
     pd.set_option("display.max_colwidth", -1)
 
     # we will make sure that the output directory exists
-    if not os.path.exists(output_directory):
-        os.mkdir(output_directory)
+    # if not os.path.exists(output_directory):
+    #    os.mkdir(output_directory)
 
     print(
         "\n ************************* Firewall configuration below ****************************"
@@ -109,6 +125,9 @@ def main():
             if acl.Action == action:
                 application_definition = ApplicationClass(
                     acl.Protocol, acl.SourcePort, acl.DestinationPort
+                )
+                zones_definition = ZoneClass(
+                    zones_dataframe, acl.SourceZone, acl.DestinationZone
                 )
                 address_book_definition = AddressBookEntryClass(
                     address_book_dataframe,
@@ -124,7 +143,10 @@ def main():
                     print(address_book_definition.convert_to_device_format("JUNOS"))
                 print(
                     acl.convert_to_device_format(
-                        "JUNOS", application_definition, address_book_definition
+                        "JUNOS",
+                        application_definition,
+                        address_book_definition,
+                        zones_definition,
                     )
                 )
 

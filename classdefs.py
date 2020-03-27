@@ -1,10 +1,30 @@
 from constdefs import *
 import ipaddress
 
-# --------------------------------------- Classes ---------------------------------------
+# --------------------------------------- Classes - ZoneClass ---------------------------------------
+class ZoneClass:
+    def __init__(self, zones_dataframe, SourceZone="", DestinationZone=""):
+        self.SourceZones = []
+        self.DestinationZones = []
+
+        source_zones = zones_dataframe.loc[
+            zones_dataframe[ZoneNameColumnName] == SourceZone
+        ][ZoneSetColumnName].items()
+
+        destination_zones = zones_dataframe.loc[
+            zones_dataframe[ZoneNameColumnName] == DestinationZone
+        ][ZoneSetColumnName].items()
+
+        for index, value in source_zones:
+            self.SourceZones = list(value.replace(",", "").split(" "))
+
+        for index, value in destination_zones:
+            self.DestinationZones = list(value.replace(",", "").split(" "))
+
+
+# --------------------------------------- Classes - ApplicationClass ---------------------------------------
 class ApplicationClass:
     def __init__(self, Protocol="", SourcePort="", DestinationPort="", Description=""):
-        """Return a ACL object, Initialize with empty values"""
         self.Name = f"{Protocol}_{DestinationPort}"
         self.Protocol = Protocol
         self.SourcePort = SourcePort
@@ -28,6 +48,9 @@ class ApplicationClass:
         return f"{self.Protocol}_{self.DestinationPort}".lower()
 
 
+# --------------------------------------- Classes - AddressBookEntryClass ---------------------------------------
+
+
 class AddressBookEntryClass:
 
     name = ""
@@ -44,7 +67,7 @@ class AddressBookEntryClass:
         address_book_dict = {}
         address_book_list = []
 
-        # -------------- Parse DestinationNetwork
+        # -------------- Parse SourceNetwork
 
         for address in SourceNetwork:
             try:
@@ -54,7 +77,7 @@ class AddressBookEntryClass:
                 ):
                     address_book_list.append(
                         {
-                            "name": "net_" + address.replace("/", "_"),
+                            "name": "net-" + address.replace("/", "_"),
                             "value": address,
                             "direction": "source",
                         }
@@ -85,7 +108,7 @@ class AddressBookEntryClass:
                 ):
                     address_book_list.append(
                         {
-                            "name": "net_" + address.replace("/", "_"),
+                            "name": "net-" + address.replace("/", "_"),
                             "value": address,
                             "direction": "destination",
                         }
@@ -119,12 +142,23 @@ class AddressBookEntryClass:
 
         if device_type == "JUNOS":
             for item in self.AddressBook["items"]:
-                if item["name"] != "any":
-                    address_book_entry_command.append(
-                        f"set security address-book global address "
-                        f"{item['name']} "
-                        f"{item['value']}"
-                    )
+                try:
+                    if (
+                        ipaddress.IPv4Network(item["value"]).is_global
+                        or ipaddress.IPv4Network(item["value"]).is_private
+                    ):
+                        address_book_entry_command.append(
+                            f"set security address-book global address "
+                            f"{item['name']} "
+                            f"{item['value']}"
+                        )
+                except ValueError:
+                    if item["name"] != "any":
+                        address_book_entry_command.append(
+                            f"set security address-book global address "
+                            f"{item['name']} "
+                            f"dns-name {item['value']}"
+                        )
 
         result_string = "\n".join(str(x) for x in address_book_entry_command)
         return result_string.lower()
@@ -202,7 +236,11 @@ class AccessRuleClass:
             self.SourcePort = SourcePort
 
     def convert_to_device_format(
-        self, device_type, application_definition, address_book_definition
+        self,
+        device_type,
+        application_definition,
+        address_book_definition,
+        zones_definition,
     ):
         """
 
@@ -210,46 +248,50 @@ class AccessRuleClass:
         :return:
         """
 
+        source_address_book_entries = []
+        destination_address_book_entries = []
+
         if device_type == "JUNOS":
-            if self.Action == ActionActive:
-                action_to_device_command = "set"
-            elif self.Action == ActionDelete:
-                action_to_device_command = "delete"
+
+            if self.Action == ActionDelete:
+                result_string = (
+                    f"delete security policies global"
+                    f" policy {(self.Name).replace(' ', '_')} "
+                )
+                return result_string.lower()
+
             elif self.Action == ActionDeactivate:
-                action_to_device_command = "deactivate"
+                result_string = (
+                    f"deactivate security policies global"
+                    f" policy {(self.Name).replace(' ', '_')} "
+                )
+                return result_string.lower()
 
-            result_string = (
-                f"{action_to_device_command} security policies"
-                f" from-zone {self.SourceZone}"
-                f" to-zone {self.DestinationZone}"
-                f" policy {(self.Name).replace(' ', '_')}"
-            )
-
-            source_address_book_entries = []
-            destination_address_book_entries = []
-
-            if self.Action == ActionActive:
+            elif self.Action == ActionActive:
                 for item in address_book_definition.AddressBook["items"]:
+
                     if item["direction"] == "source":
                         source_address_book_entries.append(item["name"])
                     elif item["direction"] == "destination":
                         destination_address_book_entries.append(item["name"])
 
                 result_string = (
-                    result_string + f' description "{self.Description}"'
-                    f" match source-address [{' '.join(str(x) for x in source_address_book_entries)}]"
+                    f"set security policies global"
+                    f" policy {(self.Name).replace(' ', '_')} "
+                    f' description "{self.Description}"'
+                    f" match"
+                    f" from-zone [{' '.join(zones_definition.SourceZones)}]"
+                    f" to-zone [{' '.join(zones_definition.DestinationZones)}]"
+                    f" source-address [{' '.join(str(x) for x in source_address_book_entries)}]"
                     f" destination-address [{' '.join(str(x) for x in destination_address_book_entries)}]"
                     f" application {application_definition.get_app_name()}"
-                    f"\nset security policies"
-                    f" from-zone {self.SourceZone}"
-                    f" to-zone {self.DestinationZone}"
+                    f"\nset security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
                     f" then permit"
-                    f"\nactivate security policies"
-                    f" from-zone {self.SourceZone}"
-                    f" to-zone {self.DestinationZone}"
+                    f"\nactivate security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
                 )
+
                 # TODO - implement deny statement
 
         elif device_type == "Cisco ASA":
