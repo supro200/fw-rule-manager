@@ -176,8 +176,10 @@ def connect_to_fw_validate_config(config):
                        'set security policies global policy digital_media_content then permit',
                        'activate security policies global policy digital_media_content'
                        ]
-
+    config_commands = config.splitlines()
     print("Deploying config:", config_commands)
+
+
 
     for command in config_commands:
         print("sending", command)
