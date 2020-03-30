@@ -242,7 +242,7 @@ def main():
     )
     print(config)
 
-    #connect_to_fw_validate_config(config)
+    connect_to_fw_validate_config(config)
 
 if __name__ == "__main__":
     main()
