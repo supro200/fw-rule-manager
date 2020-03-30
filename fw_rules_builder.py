@@ -172,7 +172,9 @@ def connect_to_fw_validate_config(config):
 
     print("Deploying config:", config_commands)
 
-    output = net_connect.send_config_set(config_commands, exit_config_mode=False)
+    for command in config_commands:
+        print("sending", command)
+        net_connect.send_config_set(command, exit_config_mode=False)
     print("Done\n")
 
     print("------------ Validating configuration --------------")
