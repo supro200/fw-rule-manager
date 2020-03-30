@@ -17,13 +17,11 @@ from constdefs import *
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-output_directory = "_output"
-
-level = logging.INFO
+level = logging.DEBUG
 format = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-handlers = [logging.FileHandler("qos_config_builder.log"), logging.StreamHandler()]
-# handlers = [logging.StreamHandler()]
-logging.basicConfig(level=level, format=format, handlers=handlers)
+
+logging.basicConfig(filename='netmiko_transactions.log', format=format, level=level)
+logger = logging.getLogger("netmiko")
 
 def parse_source_and_generate_config(filename, device_os):
     #  -------------------------------- Load data from Excel spreadsheet--------------------------
@@ -143,8 +141,7 @@ def parse_source_and_generate_config(filename, device_os):
 
 def connect_to_fw_validate_config(config):
 
-    logging.basicConfig(filename='netmiko_transactions.log', level=logging.DEBUG)
-    logger = logging.getLogger("netmiko")
+
 
     # Establish a connection to the router
 
