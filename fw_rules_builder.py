@@ -106,11 +106,6 @@ def parse_source_and_generate_config(filename, device_os):
     # print full dataframe strings, don't cut them
     pd.set_option("display.max_colwidth", -1)
 
-    # we will make sure that the output directory exists
-    # if not os.path.exists(output_directory):
-    #    os.mkdir(output_directory)
-
-
     device_config = ""
     for action in action_list:
             device_config = device_config + f"\n\n# ------------------------------- {action} ---------------------------------"
@@ -141,8 +136,6 @@ def parse_source_and_generate_config(filename, device_os):
 
 def connect_to_fw_validate_config(config):
 
-
-
     # Establish a connection to the router
 
     password = getpass.getpass()
@@ -153,8 +146,14 @@ def connect_to_fw_validate_config(config):
         'username': 'alex',
         'password': password,
         'port': 22,
+        "verbose": "True",
+        'global_delay_factor': 4,
     }
     net_connect = ConnectHandler(**virtual_srx)
+
+    net_connect.session_preparation()
+    net_connect.enable()
+
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
 
