@@ -45,6 +45,7 @@ def parse_source_and_generate_config(filename, device_os):
     zones_dataframe = temp_df3.replace(np.nan, "", regex=True)
 
     print(Fore.GREEN + f"--------------- Loaded Data Sources -------------------")
+    print(Style.RESET_ALL)
     print(
         f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}"
     )
@@ -227,6 +228,7 @@ def connect_to_fw_validate_config(config):
     #    f.close()
     else:
         print(Fore.RED + "------------ Validation failed - Rollback -----------")
+        print(Style.RESET_ALL)
         rollback = net_connect.send_command("rollback 0")
         print(rollback)
         # print ("the following device " + device + " had a commit error and has been rolled back")
