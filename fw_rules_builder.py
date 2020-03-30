@@ -147,12 +147,11 @@ def connect_to_fw_validate_config(config):
         'password': password,
         'port': 22,
         "verbose": "True",
-        'global_delay_factor': 4,
     }
     net_connect = ConnectHandler(**virtual_srx)
 
-    net_connect.session_preparation()
-    net_connect.enable()
+    #net_connect.session_preparation()
+    #net_connect.enable()
 
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
@@ -165,7 +164,7 @@ def connect_to_fw_validate_config(config):
                        'set security address-book global address aueafrmnprxy01 10.248.57.50/32',
                        'set security address-book global address net-10.64.0.0_16 10.64.0.0/16',
                        'set security address-book global address net-10.5.0.0_28 10.5.0.0/28',
-                       'set security policies global policy digital_media_content  description "interact application client to server" match from-zone [dmz1 dmz2 internal1 internal2 servers1 internet-untrust] to-zone [internal-management] source-address [azure-aus-redhat01 net-10.1.2.0_24 aueafrmnprxy01] destination-address [net-10.64.0.0_16 net-10.5.0.0_28] application tcp_50410',
+                       'set security policies global policy digital_media_content description "interact application client to server" match from-zone dmz1 to-zone internal-management source-address net-10.1.2.0_24 aueafrmnprxy01 destination-address net-10.5.0.0_28 application tcp_50410',
                        'set security policies global policy digital_media_content then permit',
                        'activate security policies global policy digital_media_content'
                        ]
@@ -174,7 +173,12 @@ def connect_to_fw_validate_config(config):
 
     for command in config_commands:
         print("sending", command)
-        net_connect.send_config_set(command, exit_config_mode=False)
+        try:
+            net_connect.send_config_set(command, exit_config_mode=False)
+        except Exception as e:
+            print(f"Failed to push command: {command} \n Exception: {e}")
+            exit(1)
+
     print("Done\n")
 
     print("------------ Validating configuration --------------")
