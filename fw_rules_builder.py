@@ -9,6 +9,7 @@ import getpass
 import logging
 
 from paramiko import AuthenticationException
+from colorama import init, Fore, Style  # colored screen output
 
 from classdefs import (
     AccessRuleClass,
@@ -43,7 +44,7 @@ def parse_source_and_generate_config(filename, device_os):
     temp_df3 = xl.parse(zones_sheet_name)
     zones_dataframe = temp_df3.replace(np.nan, "", regex=True)
 
-    print(f"--------------- Loaded Data Sources -------------------")
+    print(Fore.GREEN + f"--------------- Loaded Data Sources -------------------")
     print(
         f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}"
     )
@@ -144,6 +145,8 @@ def connect_to_fw_validate_config(config):
     except KeyError:
         password = getpass.getpass()
 
+    print("------------ Deploying configuration --------------")
+
     virtual_srx = {
         'device_type': 'juniper',
         'host': '10.27.40.180',
@@ -153,7 +156,6 @@ def connect_to_fw_validate_config(config):
         "verbose": "True",
     }
     try:
-        print(virtual_srx)
         net_connect = ConnectHandler(**virtual_srx)
     except AuthenticationException as e:
         print('Authentication failed.')
@@ -165,7 +167,7 @@ def connect_to_fw_validate_config(config):
     #net_connect.session_preparation()
     #net_connect.enable()
 
-    print("------------ Deploying configuration --------------")
+
     config_commands = config.splitlines()
 
     test_config_commands = ['set security zones security-zone test-segment2',
@@ -205,7 +207,8 @@ def connect_to_fw_validate_config(config):
     print(commit_check, "\n\n")
 
     if "succeeds" in commit_check:
-        print("----------- Success ----------- ")
+        print(Fore.GREEN + "----------- Success ----------- ")
+        print(Style.RESET_ALL)
         show_compare_commands = "show | compare"
         show_compare = net_connect.send_config_set(show_compare_commands, exit_config_mode=False)
         #     sleep(5)
@@ -223,7 +226,7 @@ def connect_to_fw_validate_config(config):
     #    f.write(device +' has been configured \n')
     #    f.close()
     else:
-        print("------------ Validation failed - Rollback -----------")
+        print(Fore.RED + "------------ Validation failed - Rollback -----------")
         rollback = net_connect.send_command("rollback 0")
         print(rollback)
         # print ("the following device " + device + " had a commit error and has been rolled back")
@@ -236,6 +239,9 @@ def connect_to_fw_validate_config(config):
 
 
 def main():
+    # init colorama
+    init()
+
     config = parse_source_and_generate_config(filename, "JUNOS")
     print(
         "\n ************************* Firewall configuration below ****************************"
