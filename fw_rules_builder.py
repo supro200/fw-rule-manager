@@ -184,7 +184,7 @@ def connect_to_fw_validate_config(config):
     for command in config_commands:
         print("sending", command)
         try:
-            net_connect.send_config_set(command, exit_config_mode=False)
+            net_connect.send_config_set(command, exit_config_mode=False, cmd_verify=False)
         except NetMikoTimeoutException:
             print('Timeout error occured.')
             print(f"Failed to push command: {command} \n Exception: {e}")
