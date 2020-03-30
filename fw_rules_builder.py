@@ -139,9 +139,10 @@ def parse_source_and_generate_config(filename, device_os):
 
 def connect_to_fw_validate_config(config):
 
-    # Establish a connection to the router
-
-    password = getpass.getpass()
+    try:
+        password = os.environ["FW_MAN_PASSWORD"]
+    except KeyError:
+        password = getpass.getpass()
 
     virtual_srx = {
         'device_type': 'juniper',
@@ -164,7 +165,7 @@ def connect_to_fw_validate_config(config):
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
 
-    config_commands = ['set security zones security-zone test-segment2',
+    test_config_commands = ['set security zones security-zone test-segment2',
                        'set applications application tcp_22 protocol tcp destination-port 22',
                        'set applications application tcp_50410 protocol tcp destination-port 50410',
                        'set security address-book global address azure-aus-redhat01 10.248.59.21/32',
@@ -177,7 +178,7 @@ def connect_to_fw_validate_config(config):
                        'activate security policies global policy digital_media_content'
                        ]
     config_commands = config.splitlines()
-    print("Deploying config:", config_commands)
+    #print("Deploying config:", config_commands)
 
     net_connect.send_config_set(config_commands, exit_config_mode=False, cmd_verify=False)
 
