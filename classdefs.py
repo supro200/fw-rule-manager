@@ -40,7 +40,7 @@ class ApplicationClass:
             source_port = f"" if self.SourcePort == "any" else f"{self.SourcePort}"
             destination_port = f" destination-port {self.DestinationPort}".lower()
 
-            result_string = prefix + source_port + destination_port
+            result_string = "\n" +prefix + source_port + destination_port
 
         return result_string.lower()
 
@@ -257,14 +257,14 @@ class AccessRuleClass:
 
             if self.Action == ActionDelete:
                 result_string = (
-                    f"delete security policies global"
+                    f"\ndelete security policies global"
                     f" policy {(self.Name).replace(' ', '_')} "
                 )
                 return result_string.lower()
 
             elif self.Action == ActionDeactivate:
                 result_string = (
-                    f"deactivate security policies global"
+                    f"\ndeactivate security policies global"
                     f" policy {(self.Name).replace(' ', '_')} "
                 )
                 return result_string.lower()

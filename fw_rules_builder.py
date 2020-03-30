@@ -1,13 +1,21 @@
 import pandas as pd
 import numpy as np
-import textwrap
 import logging
 import os
 import warnings
-import ipaddress
+
+from netmiko import ConnectHandler
+import getpass
+import logging
+from classdefs import (
+    AccessRuleClass,
+    ApplicationClass,
+    AddressBookEntryClass,
+    ZoneClass,
+)
+from constdefs import *
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
-import argparse
 
 output_directory = "_output"
 
@@ -17,16 +25,7 @@ handlers = [logging.FileHandler("qos_config_builder.log"), logging.StreamHandler
 # handlers = [logging.StreamHandler()]
 logging.basicConfig(level=level, format=format, handlers=handlers)
 
-from classdefs import (
-    AccessRuleClass,
-    ApplicationClass,
-    AddressBookEntryClass,
-    ZoneClass,
-)
-from constdefs import *
-
-
-def main():
+def parse_source_and_generate_config(filename, device_os):
     #  -------------------------------- Load data from Excel spreadsheet--------------------------
     # --------------------------------------------------------------------------------------------
     # Load data from QoS Flows Sheet into dataframe
@@ -76,19 +75,18 @@ def main():
             action_dataframe = temp_df1.loc[
                 (traffic_flows_dataframe[ActionActive] == "No")
                 & (traffic_flows_dataframe[ActionDelete] == "No")
-            ]
+                ]
         elif action == ActionActive:
             action_dataframe = temp_df1.loc[
                 (traffic_flows_dataframe[action] == "Yes")
                 & (traffic_flows_dataframe[ActionDelete] == "No")
-            ]
+                ]
         elif action == ActionDelete:
             action_dataframe = temp_df1.loc[
                 (traffic_flows_dataframe[ActionDelete] == "Yes")
             ]
 
         for index, row in action_dataframe.iterrows():
-
             # app_definition = clsApplication()
             acl = AccessRuleClass(
                 traffic_flows_dataframe.ix[index, RuleColumnName],
@@ -118,39 +116,97 @@ def main():
         "\n ************************* Firewall configuration below ****************************"
     )
 
+    device_config = ""
     for action in action_list:
-        print(
-            f"\n# ------------------------------- {action} ---------------------------------"
-        )
-        for acl in acl_list:
-            if acl.Action == action:
-                application_definition = ApplicationClass(
-                    acl.Protocol, acl.SourcePort, acl.DestinationPort
-                )
-                zones_definition = ZoneClass(
-                    zones_dataframe, acl.SourceZone, acl.DestinationZone
-                )
-                address_book_definition = AddressBookEntryClass(
-                    address_book_dataframe,
-                    acl.Name,
-                    acl.Description,
-                    acl.SourceNetworkAndMask,
-                    acl.DestinationNetworkAndMask,
-                )
+            device_config = device_config + f"\n\n# ------------------------------- {action} ---------------------------------"
 
-                print(f"# -------- {acl.Description} -------------")
-                if action == ActionActive:
-                    print(application_definition.convert_to_device_format("JUNOS"))
-                    print(address_book_definition.convert_to_device_format("JUNOS"))
-                print(
-                    acl.convert_to_device_format(
-                        "JUNOS",
-                        application_definition,
-                        address_book_definition,
-                        zones_definition,
+            for acl in acl_list:
+                if acl.Action == action:
+                    application_definition = ApplicationClass(
+                        acl.Protocol, acl.SourcePort, acl.DestinationPort
                     )
-                )
+                    zones_definition = ZoneClass(
+                        zones_dataframe, acl.SourceZone, acl.DestinationZone
+                    )
+                    address_book_definition = AddressBookEntryClass(
+                        address_book_dataframe,
+                        acl.Name,
+                        acl.Description,
+                        acl.SourceNetworkAndMask,
+                        acl.DestinationNetworkAndMask,
+                    )
+                    device_config = device_config +  f"\n# -------- {acl.Description} -------------"
+                    if action == ActionActive:
+                        device_config = device_config  + application_definition.convert_to_device_format(device_os) + "\n"
+                        device_config = device_config + address_book_definition.convert_to_device_format(device_os) + "\n"
+                    device_config =  device_config + acl.convert_to_device_format(
+                            device_os, application_definition, address_book_definition, zones_definition) + "\n"
 
+    return device_config
+
+def connect_to_fw_validate_config(config):
+
+    logging.basicConfig(filename='netmiko_transactions.log', level=logging.DEBUG)
+    logger = logging.getLogger("netmiko")
+
+    # Establish a connection to the router
+
+    password = getpass.getpass()
+
+    virtual_srx = {
+        'device_type': 'juniper',
+        'host': '10.27.40.180',
+        'username': 'alex',
+        'password': password,
+        'port': 22,
+    }
+    net_connect = ConnectHandler(**virtual_srx)
+    print("------------ Deploying configuration --------------")
+    config_commands = config.splitlines()
+    #                   'set security policies from-zone zone to-zone zo policy test match source-address e destination-address q1 ']
+    output = net_connect.send_config_set(config_commands, exit_config_mode=False)
+    print("Done\n")
+
+    print("------------ Validating configuration --------------")
+    commit_check_commands = ['commit check']
+    commit_check = net_connect.send_config_set(commit_check_commands, exit_config_mode=False)
+    # sleep(5)
+    print(commit_check, "\n\n")
+
+    if "succeeds" in commit_check:
+        print("----------- Success ----------- ")
+        show_compare_commands = "show | compare"
+        show_compare = net_connect.send_config_set(show_compare_commands, exit_config_mode=False)
+        #     sleep(5)
+        print(show_compare)
+
+        # Rollback anyway to previous clean state
+        # print("------------ Validation failed - Rollback -----------")
+        rollback = net_connect.send_command("rollback 0")
+        # print (rollback)
+
+    #    commit = net_connect.send_command("commit and-quit")
+    #    print (commit)
+    #    print ("configuration saved on " + device)
+    #    f = open('configured/configured.txt', 'a+')
+    #    f.write(device +' has been configured \n')
+    #    f.close()
+    else:
+        print("------------ Validation failed - Rollback -----------")
+        rollback = net_connect.send_command("rollback 0")
+        print(rollback)
+        # print ("the following device " + device + " had a commit error and has been rolled back")
+        # f = open('failed/commit_error.txt', 'a')
+        # f.write('Commit check failed for ' + device + '\n')
+        # f.close()
+
+    print('\n')
+    print(80 * '-')
+
+
+def main():
+    config = parse_source_and_generate_config(filename, "JUNOS")
+    connect_to_fw_validate_config(config)
 
 if __name__ == "__main__":
     # argparse here
