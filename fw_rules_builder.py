@@ -112,9 +112,6 @@ def parse_source_and_generate_config(filename, device_os):
     # if not os.path.exists(output_directory):
     #    os.mkdir(output_directory)
 
-    print(
-        "\n ************************* Firewall configuration below ****************************"
-    )
 
     device_config = ""
     for action in action_list:
@@ -163,7 +160,9 @@ def connect_to_fw_validate_config(config):
     net_connect = ConnectHandler(**virtual_srx)
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
-    #                   'set security policies from-zone zone to-zone zo policy test match source-address e destination-address q1 ']
+
+    print("Commands:", config_commands)
+
     output = net_connect.send_config_set(config_commands, exit_config_mode=False)
     print("Done\n")
 
@@ -206,6 +205,11 @@ def connect_to_fw_validate_config(config):
 
 def main():
     config = parse_source_and_generate_config(filename, "JUNOS")
+    print(
+        "\n ************************* Firewall configuration below ****************************"
+    )
+    print(config)
+
     connect_to_fw_validate_config(config)
 
 if __name__ == "__main__":
