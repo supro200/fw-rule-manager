@@ -157,6 +157,8 @@ def connect_to_fw_validate_config(config):
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
 
+    config_commands = ['set security zones security-zone test-segment2']
+
     print("Commands:", config_commands)
 
     output = net_connect.send_config_set(config_commands, exit_config_mode=False)
