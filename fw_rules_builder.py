@@ -28,7 +28,7 @@ def parse_source_and_generate_config(filename, device_os):
     # --------------------------------------------------------------------------------------------
     # Load data from QoS Flows Sheet into dataframe
     xl = pd.ExcelFile(filename)
-    logging.debug("=====> sheet_names: ", xl.sheet_names)
+    #logging.debug("=====> sheet_names: ", xl.sheet_names)
     # Load data from QoS Flows Tab into dataframe
     temp_df1 = xl.parse(traffic_flows_sheet_name)
     # Replace empty values with empty stings to avoid errors in processing data as strings
@@ -157,9 +157,20 @@ def connect_to_fw_validate_config(config):
     print("------------ Deploying configuration --------------")
     config_commands = config.splitlines()
 
-    config_commands = ['set security zones security-zone test-segment2']
+    config_commands = ['set security zones security-zone test-segment2',
+                       'set applications application tcp_22 protocol tcp destination-port 22'
+                       'set applications application tcp_50410 protocol tcp destination-port 50410',
+                       'set security address-book global address azure-aus-redhat01 10.248.59.21/32',
+                       'set security address-book global address net-10.1.2.0_24 10.1.2.0/24',
+                       'set security address-book global address aueafrmnprxy01 10.248.57.50/32',
+                       'set security address-book global address net-10.64.0.0_16 10.64.0.0/16',
+                       'set security address-book global address net-10.5.0.0_28 10.5.0.0/28',
+                       'set security policies global policy digital_media_content  description "interact application client to server" match from-zone [dmz1 dmz2 internal1 internal2 servers1 internet-untrust] to-zone [internal-management] source-address [azure-aus-redhat01 net-10.1.2.0_24 aueafrmnprxy01] destination-address [net-10.64.0.0_16 net-10.5.0.0_28] application tcp_50410',
+                       'set security policies global policy digital_media_content then permit',
+                       'activate security policies global policy digital_media_content'
+                       ]
 
-    print("Commands:", config_commands)
+    print("Deploying config:", config_commands)
 
     output = net_connect.send_config_set(config_commands, exit_config_mode=False)
     print("Done\n")
