@@ -158,7 +158,7 @@ def connect_to_fw_validate_config(config):
     config_commands = config.splitlines()
 
     config_commands = ['set security zones security-zone test-segment2',
-                       'set applications application tcp_22 protocol tcp destination-port 22'
+                       'set applications application tcp_22 protocol tcp destination-port 22',
                        'set applications application tcp_50410 protocol tcp destination-port 50410',
                        'set security address-book global address azure-aus-redhat01 10.248.59.21/32',
                        'set security address-book global address net-10.1.2.0_24 10.1.2.0/24',
