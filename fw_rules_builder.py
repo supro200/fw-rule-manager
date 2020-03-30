@@ -141,7 +141,6 @@ def connect_to_fw_validate_config(config):
 
     try:
         password = os.environ["FW_MAN_PASSWORD"]
-        print(password)
     except KeyError:
         password = getpass.getpass()
 
