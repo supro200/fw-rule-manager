@@ -179,18 +179,18 @@ def connect_to_fw_validate_config(config):
     config_commands = config.splitlines()
     print("Deploying config:", config_commands)
 
+    net_connect.send_config_set(config_commands, exit_config_mode=False, cmd_verify=False)
 
-
-    for command in config_commands:
-        print("sending", command)
-        try:
-            net_connect.send_config_set(command, exit_config_mode=False, cmd_verify=False)
-        except NetMikoTimeoutException:
-            print('Timeout error occured.')
-            print(f"Failed to push command: {command} \n Exception: {e}")
-        except Exception as e:
-            print(f"Failed to push command: {command} \n Exception: {e}")
-            exit(1)
+    # for command in config_commands:
+    #     print("sending", command)
+    #     try:
+    #         net_connect.send_config_set(command, exit_config_mode=False, cmd_verify=False)
+    #     except NetMikoTimeoutException:
+    #         print('Timeout error occured.')
+    #         print(f"Failed to push command: {command} \n Exception: {e}")
+    #     except Exception as e:
+    #         print(f"Failed to push command: {command} \n Exception: {e}")
+    #         exit(1)
 
     print("Done\n")
 
