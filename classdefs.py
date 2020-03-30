@@ -24,32 +24,41 @@ class ZoneClass:
 
 # --------------------------------------- Classes - ApplicationClass ---------------------------------------
 class ApplicationClass:
-    def __init__(self, Protocol="", SourcePort="", DestinationPort="", Description=""):
-        self.Name = f"{Protocol}_{DestinationPort}"
-        self.Protocol = Protocol
-        self.SourcePort = SourcePort
-        self.DestinationPort = DestinationPort
-        self.Description = Description
+    def __init__(self, Protocol="", SourcePort="", DestinationPortList="", Description=""):
+
+        if SourcePort:
+            self.SourcePort = SourcePort
+        else:
+            self.SourcePort = ""
+        dest_port_dict = {}
+        dest_port_list = []
+
+        for port in DestinationPortList:
+            dest_port_list.append({"Name": f"{Protocol.lower()}-{port}","Protocol": Protocol.lower(),"DestinationPort": port})
+                       # address_book_dataframe.loc[address_book_dataframe[AddressBookEntryColumnName]== address][AddressBookNetworkColumnName].item(),
+
+        self.DestinationPortList = dest_port_list
+
 
     def convert_to_device_format(self, device_type):
+
+        result_string = ""
         if device_type == "JUNOS":
 
-            prefix = (
-                f"set applications application {self.Name} protocol {self.Protocol}"
-            )
-            source_port = f"" if self.SourcePort == "any" else f"{self.SourcePort}"
-            destination_port = f" destination-port {self.DestinationPort}".lower()
+            for item in self.DestinationPortList:
+                prefix = (
+                    f"set applications application {item['Name']} protocol {item['Protocol']}"
+                )
+                source_port = f"" if self.SourcePort == "any" else f"{self.SourcePort}"
+                destination_port = f" destination-port {item['DestinationPort']}".lower()
 
-            result_string = "\n" +prefix + source_port + destination_port
-
+                result_string += "\n" +prefix + source_port + destination_port
         return result_string.lower()
 
     def get_app_name(self):
         return f"{self.Protocol}_{self.DestinationPort}".lower()
 
-
 # --------------------------------------- Classes - AddressBookEntryClass ---------------------------------------
-
 
 class AddressBookEntryClass:
 
@@ -191,9 +200,12 @@ class AccessRuleClass:
         self.SourceZone = SourceZone
         self.DestinationZone = DestinationZone
         self.RuleAction = RuleAction
+        self.Protocol = Protocol
 
         self.SourceNetworkAndMask = []
         self.DestinationNetworkAndMask = []
+        self.SourcePort = []
+        self.DestinationPort = []
 
         #  if Source Network is "any" then Source Network Mask should be empty
         if SourceNetwork == "any":
@@ -211,31 +223,14 @@ class AccessRuleClass:
             for destination_address in destination_address_list:
                 self.DestinationNetworkAndMask.append(destination_address)
 
-        # check if Destination Port is a range or a single port
-        if "-" in str(DestinationPort):
-            self.DestinationPort = str(DestinationPort).replace("-", " ")
-            DestinationPortCondition = " range "
-        elif (
-            (DestinationPort == "n/a")
-            or (DestinationPort == "")
-            or (DestinationPort == "any")
-        ):
-            self.DestinationPort = ""
-            DestinationPortCondition = ""
+        # if Destination Network is "any" then Destination Network Mask should be empty
+        if DestinationPort == "any":
+            self.DestinationPort.append("any")
         else:
-            self.DestinationPort = DestinationPort
-            DestinationPortCondition = " eq "
+            destination_port_list = str(DestinationPort).replace(" ", "").split(",")
+            for destination_port in destination_port_list:
+                self.DestinationPort.append(destination_port)
 
-        if Protocol == "any":
-            self.Protocol = "ip"
-            self.SourcePort = ""
-            SourcePortCondition = ""
-            self.DestinationPort = ""
-            SourceNetworkMask = ""
-            DestinationPortCondition = ""
-        else:
-            self.Protocol = Protocol
-            self.SourcePort = SourcePort
 
     def convert_to_device_format(
         self,
@@ -252,6 +247,7 @@ class AccessRuleClass:
 
         source_address_book_entries = []
         destination_address_book_entries = []
+        application_entries = []
 
         if device_type == "JUNOS":
 
@@ -277,6 +273,11 @@ class AccessRuleClass:
                     elif item["direction"] == "destination":
                         destination_address_book_entries.append(item["name"])
 
+                for item in application_definition.DestinationPortList:
+                    application_entries.append(item["Name"])
+
+                #print(">>>>>>>>>APP DEF:",application_entries)
+
                 result_string = (
                     f"set security policies global"
                     f" policy {(self.Name).replace(' ', '_')} "
@@ -286,7 +287,8 @@ class AccessRuleClass:
                     f" to-zone [{' '.join(zones_definition.DestinationZones)}]"
                     f" source-address [{' '.join(str(x) for x in source_address_book_entries)}]"
                     f" destination-address [{' '.join(str(x) for x in destination_address_book_entries)}]"
-                    f" application {application_definition.get_app_name()}"
+                    f" application [{' '.join(str(x) for x in application_entries)}]" 
+                    #{application_definition.get_app_name()}"
                     f"\nset security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
                     f" then {self.RuleAction}"
