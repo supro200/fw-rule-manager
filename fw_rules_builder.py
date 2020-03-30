@@ -154,11 +154,14 @@ def connect_to_fw_validate_config(config):
         "verbose": "True",
     }
     try:
+        print(virtual_srx)
         net_connect = ConnectHandler(**virtual_srx)
     except AuthenticationException as e:
         print('Authentication failed.')
+        exit(1)
     except NetMikoTimeoutException:
         print('Timeout error occured.')
+        exit(1)
 
     #net_connect.session_preparation()
     #net_connect.enable()
