@@ -62,7 +62,7 @@ def parse_source_and_generate_config(filename, device_os):
 
     # search for Action header - Active/Delete/etc
     for header in headers_list:
-        if (ActionActive in header) or (ActionDelete in header):
+        if (ActionEnable in header) or (ActionDelete in header):
             action_list.append(header)
     # Special case when Action is Active and aet to No - deactivate
     action_list.append(ActionDeactivate)
@@ -76,10 +76,10 @@ def parse_source_and_generate_config(filename, device_os):
         # process special case when Active is set to No, deactivate the rule
         if action == ActionDeactivate:
             action_dataframe = temp_df1.loc[
-                (traffic_flows_dataframe[ActionActive] == "No")
+                (traffic_flows_dataframe[ActionEnable] == "No")
                 & (traffic_flows_dataframe[ActionDelete] == "No")
                 ]
-        elif action == ActionActive:
+        elif action == ActionEnable:
             action_dataframe = temp_df1.loc[
                 (traffic_flows_dataframe[action] == "Yes")
                 & (traffic_flows_dataframe[ActionDelete] == "No")
@@ -131,7 +131,7 @@ def parse_source_and_generate_config(filename, device_os):
                         acl.DestinationNetworkAndMask,
                     )
                     device_config = device_config +  f"\n# -------- {acl.Description} -------------"
-                    if action == ActionActive:
+                    if action == ActionEnable:
                         device_config = device_config  + application_definition.convert_to_device_format(device_os) + "\n"
                         device_config = device_config + address_book_definition.convert_to_device_format(device_os) + "\n"
                     device_config =  device_config + acl.convert_to_device_format(
@@ -250,7 +250,7 @@ def main():
     )
     print(config)
 
-    connect_to_fw_validate_config(config)
+    #connect_to_fw_validate_config(config)
 
 if __name__ == "__main__":
     main()

@@ -265,7 +265,7 @@ class AccessRuleClass:
                 )
                 return result_string.lower()
 
-            elif self.Action == ActionActive:
+            elif self.Action == ActionEnable:
                 for item in address_book_definition.AddressBook["items"]:
 
                     if item["direction"] == "source":

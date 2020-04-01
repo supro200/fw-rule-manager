@@ -24,6 +24,6 @@ standard_apps_sheet_name = "Standard Apps"
 zones_sheet_name = "Zones"
 dropdown_fields_sheet_name = "Dropdown Fields"
 
-ActionActive = "Active"
+ActionEnable = "Enable"
 ActionDeactivate = "Deactivate"
 ActionDelete = "Delete"
