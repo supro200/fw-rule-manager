@@ -1,0 +1,238 @@
+[
+    {
+        "name" : "junos-tftp",
+        "application-protocol" : "tftp",
+        "protocol" : "udp",
+        "destination-port" : "69"
+    },
+    {
+        "comment" : "#\n# Network Basic Input Output System  - networking protocol used on\n# Windows networks   session service port\n#",
+        "name" : "junos-netbios-session",
+        "protocol" : "tcp",
+        "destination-port" : "139"
+    },
+        {
+        "name" : "junos-smb-session",
+        "protocol" : "tcp",
+        "destination-port" : "445"
+    },
+    {
+        "name" : "junos-ssh",
+        "protocol" : "tcp",
+        "destination-port" : "22"
+    },
+    {
+        "name" : "junos-telnet",
+        "protocol" : "tcp",
+        "destination-port" : "23"
+    },
+    {
+        "name" : "junos-smtp",
+        "protocol" : "tcp",
+        "destination-port" : "25"
+    },
+    {
+        "name" : "junos-tacacs",
+        "protocol" : "tcp",
+        "destination-port" : "49"
+    },
+    {
+        "name" : "junos-tacacs-ds",
+        "protocol" : "tcp",
+        "destination-port" : "65"
+    },
+    {
+        "name" : "junos-dhcp-client",
+        "protocol" : "udp",
+        "destination-port" : "68"
+    },
+    {
+        "name" : "junos-dhcp-server",
+        "protocol" : "udp",
+        "destination-port" : "67"
+    },
+    {
+        "name" : "junos-bootpc",
+        "protocol" : "udp",
+        "destination-port" : "68"
+    },
+    {
+        "name" : "junos-bootps",
+        "protocol" : "udp",
+        "destination-port" : "67"
+    },
+    {
+        "name" : "junos-finger",
+        "protocol" : "tcp",
+        "destination-port" : "79"
+    },
+    {
+        "name" : "junos-http",
+        "protocol" : "tcp",
+        "destination-port" : "80"
+    },
+    {
+        "name" : "junos-https",
+        "protocol" : "tcp",
+        "destination-port" : "443"
+    },
+    {
+        "name" : "junos-pop3",
+        "protocol" : "tcp",
+        "destination-port" : "110"
+    },
+    {
+        "name" : "junos-ntp",
+        "protocol" : "udp",
+        "destination-port" : "123"
+    },
+    {
+        "name" : "junos-imap",
+        "protocol" : "tcp",
+        "destination-port" : "143"
+    },
+    {
+        "name" : "junos-imaps",
+        "protocol" : "tcp",
+        "destination-port" : "993"
+    },
+    {
+        "name" : "junos-bgp",
+        "protocol" : "tcp",
+        "destination-port" : "179"
+    },
+    {
+        "name" : "junos-ldap",
+        "protocol" : "tcp",
+        "destination-port" : "389"
+    },
+    {
+        "name" : "junos-snpp",
+        "protocol" : "tcp",
+        "destination-port" : "444"
+    },
+    {
+        "name" : "junos-syslog",
+        "protocol" : "udp",
+        "destination-port" : "514"
+    },
+    {
+        "name" : "junos-radius",
+        "protocol" : "udp",
+        "destination-port" : "1812"
+    },
+    {
+        "name" : "junos-radacct",
+        "protocol" : "udp",
+        "destination-port" : "1813"
+    },
+    {
+        "name" : "junos-nfsd-tcp",
+        "protocol" : "tcp",
+        "destination-port" : "2049"
+    },
+    {
+        "name" : "junos-nfsd-udp",
+        "protocol" : "udp",
+        "destination-port" : "2049"
+    },
+    {
+        "name" : "junos-cvspserver",
+        "protocol" : "tcp",
+        "destination-port" : "2401"
+    },
+    {
+        "name" : "junos-ldp-tcp",
+        "protocol" : "tcp",
+        "destination-port" : "646"
+    },
+    {
+        "name" : "junos-ldp-udp",
+        "protocol" : "udp",
+        "destination-port" : "646"
+    },
+    {
+        "name" : "junos-ike",
+        "protocol" : "udp",
+        "destination-port" : "500"
+    },
+    {
+        "name" : "junos-dns-udp",
+        "alg" : "dns",
+        "protocol" : "udp",
+        "destination-port" : "53"
+    },
+    {
+        "name" : "junos-dns-tcp",
+        "alg" : "dns",
+        "protocol" : "tcp",
+        "destination-port" : "53"
+    },
+        {
+        "name" : "junos-ike-nat",
+        "protocol" : "udp",
+        "destination-port" : "4500"
+    },
+
+    {
+        "name" : "junos-mail",
+        "comment" : "#\n# Mail (SMTP) protocol\n#",
+        "protocol" : "tcp",
+        "destination-port" : "25"
+    },
+    {
+        "name" : "junos-ms-sql",
+        "comment" : "#\n#  Microsoft SQL\n#",
+        "protocol" : "tcp",
+        "destination-port" : "1433"
+    },
+    {
+        "name" : "junos-nbname",
+        "comment" : "#\n# NetBIOS Name Service \n#",
+        "protocol" : "udp",
+        "destination-port" : "137"
+    },
+    {
+        "name" : "junos-nbds",
+        "comment" : "#\n# NetBIOS Datagram Service\n#",
+        "protocol" : "udp",
+        "destination-port" : "138"
+    },
+    {
+        "name" : "junos-nfs",
+        "protocol" : "udp",
+        "destination-port" : "111"
+    },
+    {
+        "name" : "junos-nbname",
+        "protocol" : "udp",
+        "destination-port" : "137"
+    },
+    {
+        "name" : "junos-sql-monitor",
+        "protocol" : "udp",
+        "destination-port" : "1434"
+    },
+    {
+    "name" : "junos-sqlnet-v1",
+        "protocol" : "tcp",
+        "destination-port" : "1525"
+    },
+    {
+    "name" : "junos-rdp",
+        "comment" : "#\n# Remote desktop Protocol\n#",
+        "protocol" : "tcp",
+        "destination-port" : "3389"
+    },
+    {
+        "name" : "junos-smtps-t1",
+        "comment" : "#\n# Secure smtp application\n#",
+        "protocol" : "tcp",
+        "destination-port" : "587"
+    },
+    {
+    "name" : "junos-smtps-t1",
+        "protocol" : "tcp",
+        "destination-port" : "465"
+    }
+]

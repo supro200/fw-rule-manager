@@ -1,15 +1,14 @@
 import pandas as pd
 import numpy as np
-import logging
-import os
 import warnings
-
-from netmiko import ConnectHandler, NetMikoTimeoutException
-import getpass
+import argparse
 import logging
+import sys
 
-from paramiko import AuthenticationException
+from datetime import datetime
+
 from colorama import init, Fore, Style  # colored screen output
+from pathlib import Path  # OS-agnostic file handling
 
 from classdefs import (
     AccessRuleClass,
@@ -18,22 +17,74 @@ from classdefs import (
     ZoneClass,
 )
 from constdefs import *
+from network_handlers import connect_to_fw_validate_config
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 level = logging.DEBUG
 format = "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
-
-logging.basicConfig(filename='netmiko_transactions.log', format=format, level=level)
+logging.basicConfig(filename="transactions.log", format=format, level=level)
 logger = logging.getLogger("netmiko")
+
+
+# -------------------------------------------------------------------------------------------
+class CustomParser(argparse.ArgumentParser):
+    """
+    Overrides default CLI parser's print_help and error methods
+    """
+
+    def print_help(self):
+        # Print default help from argparse.ArgumentParser class
+        super().print_help()
+        # print help messages
+        # print(HELP_STRING)
+
+    def error(self, message):
+        print("error: %s\n" % message)
+        print("Use --help or -h for help")
+        exit(2)
+
+
+def parse_args(args=sys.argv[1:]):
+    """Parse arguments."""
+    parser = CustomParser()
+    parser._action_groups.pop()
+    # required = parser.add_argument_group("required arguments")
+    optional = parser.add_argument_group("optional arguments")
+    optional.add_argument(
+        "--validate",
+        default=False,
+        required=False,
+        action="store_true",
+        help="Validate with the live device",
+    )
+    optional.add_argument(
+        "--screen-output",
+        "--screen_output",
+        default=True,
+        required=False,
+        action="store_true",
+        help="Prints report to screen",
+    )
+    optional.add_argument(
+        "--source_filename",
+        "--source",
+        help="File to parse",
+    )
+    optional.add_argument(
+        "--network-os",
+        "--network_os",
+        help="Network OS to generate the config for",
+    )
+    return parser.parse_args(args)
+
 
 def parse_source_and_generate_config(filename, device_os):
     #  -------------------------------- Load data from Excel spreadsheet--------------------------
     # --------------------------------------------------------------------------------------------
-    # Load data from QoS Flows Sheet into dataframe
+    # Load data from various Excel tabs into dataframes
     xl = pd.ExcelFile(filename)
-    #logging.debug("=====> sheet_names: ", xl.sheet_names)
-    # Load data from QoS Flows Tab into dataframe
+
     temp_df1 = xl.parse(traffic_flows_sheet_name)
     # Replace empty values with empty stings to avoid errors in processing data as strings
     traffic_flows_dataframe = temp_df1.replace(np.nan, "", regex=True)
@@ -44,13 +95,19 @@ def parse_source_and_generate_config(filename, device_os):
     temp_df3 = xl.parse(zones_sheet_name)
     zones_dataframe = temp_df3.replace(np.nan, "", regex=True)
 
+    temp_df4 = xl.parse(standard_apps_sheet_name)
+    standard_apps_dataframe = temp_df4.replace(np.nan, "", regex=True)
+
     print(Fore.GREEN + f"--------------- Loaded Data Sources -------------------")
-    print(Style.RESET_ALL)
+    # print(Style.RESET_ALL)
     print(
         f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}"
     )
     print(
         f"records found in {address_book_sheet_name} sheet: {str(len(address_book_dataframe[AddressBookNetworkColumnName]))}"
+    )
+    print(
+        f"records found in {standard_apps_sheet_name} sheet: {str(len(standard_apps_dataframe[ApplicationColumnName]))}"
     )
 
     # --------------------- Parse Actions ---------------------
@@ -64,14 +121,14 @@ def parse_source_and_generate_config(filename, device_os):
     for header in headers_list:
         if (ActionEnable in header) or (ActionDelete in header):
             action_list.append(header)
-    # Special case when Action is Active and aet to No - deactivate
+    # Special case when Action is Enabled and set to No - deactivate
     action_list.append(ActionDeactivate)
 
     # --------------------------------------- Process dataframe ---------------------------------------
 
     acl_list = []
 
-    # process each action - Active/Delete/etc - create a sub-dataframe with the required actions only
+    # process each action - Enable/Delete/etc - create a sub-dataframe with the required actions only
     for action in action_list:
         # process special case when Active is set to No, deactivate the rule
         if action == ActionDeactivate:
@@ -85,9 +142,7 @@ def parse_source_and_generate_config(filename, device_os):
                 & (traffic_flows_dataframe[ActionDelete] == "No")
                 ]
         elif action == ActionDelete:
-            action_dataframe = temp_df1.loc[
-                (traffic_flows_dataframe[ActionDelete] == "Yes")
-            ]
+            action_dataframe = temp_df1.loc[(traffic_flows_dataframe[ActionDelete] == "Yes")]
 
         for index, row in action_dataframe.iterrows():
             # app_definition = clsApplication()
@@ -113,144 +168,78 @@ def parse_source_and_generate_config(filename, device_os):
 
     device_config = ""
     for action in action_list:
-            device_config = device_config + f"\n\n# ------------------------------- {action} ---------------------------------"
+        device_config = (
+                device_config
+                + f"\n\n# ------------------------------- {action} ---------------------------------"
+        )
 
-            for acl in acl_list:
-                if acl.Action == action:
-                    application_definition = ApplicationClass(
-                        acl.Protocol, acl.SourcePort, acl.DestinationPort
+        for acl in acl_list:
+            if acl.Action == action:
+                application_definition = ApplicationClass(
+                    standard_apps_dataframe, acl.Protocol, acl.SourcePort, acl.DestinationPort
+                )
+                zones_definition = ZoneClass(zones_dataframe, acl.SourceZone, acl.DestinationZone)
+                address_book_definition = AddressBookEntryClass(
+                    address_book_dataframe,
+                    acl.Name,
+                    acl.Description,
+                    acl.SourceNetworkAndMask,
+                    acl.DestinationNetworkAndMask,
+                )
+                device_config = device_config + f"\n# -------- {acl.Description} -------------"
+                if action == ActionEnable:
+                    device_config = (
+                            device_config
+                            + application_definition.convert_to_device_format(device_os)
+                            + "\n"
                     )
-                    zones_definition = ZoneClass(
-                        zones_dataframe, acl.SourceZone, acl.DestinationZone
+                    device_config = (
+                            device_config
+                            + address_book_definition.convert_to_device_format(device_os)
+                            + "\n"
                     )
-                    address_book_definition = AddressBookEntryClass(
-                        address_book_dataframe,
-                        acl.Name,
-                        acl.Description,
-                        acl.SourceNetworkAndMask,
-                        acl.DestinationNetworkAndMask,
-                    )
-                    device_config = device_config +  f"\n# -------- {acl.Description} -------------"
-                    if action == ActionEnable:
-                        device_config = device_config  + application_definition.convert_to_device_format(device_os) + "\n"
-                        device_config = device_config + address_book_definition.convert_to_device_format(device_os) + "\n"
-                    device_config =  device_config + acl.convert_to_device_format(
-                            device_os, application_definition, address_book_definition, zones_definition) + "\n"
+
+                device_config = (
+                        device_config
+                        + acl.convert_to_device_format(
+                    device_os, application_definition, address_book_definition, zones_definition
+                )
+                        + "\n"
+                )
 
     return device_config
-
-def connect_to_fw_validate_config(config):
-
-    try:
-        password = os.environ["FW_MAN_PASSWORD"]
-    except KeyError:
-        password = getpass.getpass()
-
-    print("------------ Deploying configuration --------------")
-
-    virtual_srx = {
-        'device_type': 'juniper',
-        'host': '10.27.40.180',
-        'username': 'alex',
-        'password': password,
-        'port': 22,
-        "verbose": "True",
-    }
-    try:
-        net_connect = ConnectHandler(**virtual_srx)
-    except AuthenticationException as e:
-        print('Authentication failed.')
-        exit(1)
-    except NetMikoTimeoutException:
-        print('Timeout error occured.')
-        exit(1)
-
-    #net_connect.session_preparation()
-    #net_connect.enable()
-
-
-    config_commands = config.splitlines()
-
-    test_config_commands = ['set security zones security-zone test-segment2',
-                       'set applications application tcp_22 protocol tcp destination-port 22',
-                       'set applications application tcp_50410 protocol tcp destination-port 50410',
-                       'set security address-book global address azure-aus-redhat01 10.248.59.21/32',
-                       'set security address-book global address net-10.1.2.0_24 10.1.2.0/24',
-                       'set security address-book global address aueafrmnprxy01 10.248.57.50/32',
-                       'set security address-book global address net-10.64.0.0_16 10.64.0.0/16',
-                       'set security address-book global address net-10.5.0.0_28 10.5.0.0/28',
-                       'set security policies global policy digital_media_content description "interact application client to server" match from-zone dmz1 to-zone internal-management source-address net-10.1.2.0_24 destination-address net-10.5.0.0_28 application tcp_50410',
-                       'set security policies global policy digital_media_content then permit',
-                       'activate security policies global policy digital_media_content'
-                       ]
-    config_commands = config.splitlines()
-    #print("Deploying config:", config_commands)
-
-    net_connect.send_config_set(config_commands, exit_config_mode=False, cmd_verify=False)
-
-    # for command in config_commands:
-    #     print("sending", command)
-    #     try:
-    #         net_connect.send_config_set(command, exit_config_mode=False, cmd_verify=False)
-    #     except NetMikoTimeoutException:
-    #         print('Timeout error occured.')
-    #         print(f"Failed to push command: {command} \n Exception: {e}")
-    #     except Exception as e:
-    #         print(f"Failed to push command: {command} \n Exception: {e}")
-    #         exit(1)
-
-    print("Done\n")
-
-    print("------------ Validating configuration --------------")
-    commit_check_commands = ['commit check']
-    commit_check = net_connect.send_config_set(commit_check_commands, exit_config_mode=False)
-    # sleep(5)
-    print(commit_check, "\n\n")
-
-    if "succeeds" in commit_check:
-        print(Fore.GREEN + "----------- Success ----------- ")
-        print(Style.RESET_ALL)
-        show_compare_commands = "show | compare"
-        show_compare = net_connect.send_config_set(show_compare_commands, exit_config_mode=False)
-        #     sleep(5)
-        print(show_compare)
-
-        # Rollback anyway to previous clean state
-        # print("------------ Validation failed - Rollback -----------")
-        rollback = net_connect.send_command("rollback 0")
-        # print (rollback)
-
-    #    commit = net_connect.send_command("commit and-quit")
-    #    print (commit)
-    #    print ("configuration saved on " + device)
-    #    f = open('configured/configured.txt', 'a+')
-    #    f.write(device +' has been configured \n')
-    #    f.close()
-    else:
-        print(Fore.RED + "------------ Validation failed - Rollback -----------")
-        print(Style.RESET_ALL)
-        rollback = net_connect.send_command("rollback 0")
-        print(rollback)
-        # print ("the following device " + device + " had a commit error and has been rolled back")
-        # f = open('failed/commit_error.txt', 'a')
-        # f.write('Commit check failed for ' + device + '\n')
-        # f.close()
-
-    print('\n')
-    print(80 * '-')
 
 
 def main():
     # init colorama
-    init()
+    init(autoreset=True)
 
-    config = parse_source_and_generate_config(filename, "JUNOS")
-    print(
-        "\n ************************* Firewall configuration below ****************************"
-    )
-    print(config)
+    # Check CLI arguments
+    options = parse_args()
 
-    #connect_to_fw_validate_config(config)
+    source_filename = options.source_filename if options.source_filename else test_filename
+    network_os = options.network_os if options.network_os else "junos"
+
+    # get confirm from Excel file for a given Network OS
+    config = parse_source_and_generate_config(source_filename, network_os)
+
+    if config:
+        print(Fore.GREEN + f"--------------- Config parsed and saved to a file -------------------")
+
+        file_name = f"{output_dir}{network_os}-{datetime.now().strftime('%Y-%m-%d')}.txt".lower()
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        with open(file_name, "w") as f:
+            f.write(config)
+        print("\nConfig saved as: " + str(Path(file_name).resolve()))
+
+    if options.screen_output:
+        print("\n ************************* Firewall configuration below ****************************")
+        print(config)
+
+    if options.validate:
+        connect_to_fw_validate_config(config, virtual_srx)
+
 
 if __name__ == "__main__":
     main()
