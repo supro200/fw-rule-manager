@@ -1,5 +1,7 @@
-from constdefs import *
 import ipaddress
+
+from constdefs import *
+
 
 # --------------------------------------- Classes - ZoneClass ---------------------------------------
 class ZoneClass:
@@ -32,7 +34,6 @@ class ApplicationClass:
 
         for port in DestinationPortList:
             if port.isdigit():
-                print("DIGIT!", port)
                 dest_port_list.append(
                     {"Name": f"{Protocol.lower()}-{port}", "Protocol": Protocol.lower(), "DestinationPort": port,}
                 )
@@ -50,8 +51,6 @@ class ApplicationClass:
                 dest_port_list.append(
                     {"Name": f"{app_protocol}-{dest_port}", "Protocol": app_protocol, "DestinationPort": dest_port,}
                 )
-            print(port)
-
         self.DestinationPortList = dest_port_list
 
     # ----------------------------------------------------------------
@@ -257,8 +256,6 @@ class AccessRuleClass:
 
                 for item in application_definition.DestinationPortList:
                     application_entries.append(item["Name"])
-
-                # print(">>>>>>>>>APP DEF:",application_entries)
 
                 result_string = (
                     f"set security policies global"

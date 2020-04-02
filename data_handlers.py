@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from classdefs import (
     AccessRuleClass,
@@ -8,6 +8,8 @@ from classdefs import (
     ZoneClass,
 )
 from constdefs import *
+
+
 # -------------------------------------------------------------------------------------------
 
 def load_source(filename):
@@ -34,11 +36,6 @@ def load_source(filename):
 
 
 def parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe):
-    """
-
-    :param filename: Excel file name with data
-    :return:
-    """
 
     # --------------------- Parse Actions - Enabled/Delete/etc---------------------
 
@@ -110,7 +107,7 @@ def generate_config(acl_list, action_list, address_book_dataframe, zones_datafra
     device_config = ""
     for action in action_list:
         device_config = (
-            device_config + f"\n\n# ------------------------------- {action} ---------------------------------"
+                device_config + f"\n\n# ------------------------ Rules to {action} ---------------------------------"
         )
 
         for acl in acl_list:

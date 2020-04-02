@@ -1,15 +1,15 @@
-import warnings
 import argparse
 import logging
 import sys
-
+import warnings
 from datetime import datetime
-from colorama import init, Fore, Style  # colored screen output
 from pathlib import Path  # OS-agnostic file handling
 
+from colorama import init, Fore  # colored screen output
+
 from constdefs import *
-from network_handlers import connect_to_fw_validate_config
 from data_handlers import load_source, parse_dataframes, generate_config
+from network_handlers import connect_to_fw_validate_config
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
@@ -97,7 +97,7 @@ def main():
         print("\nConfig saved as: " + str(Path(file_name).resolve()))
 
     if options.screen_output:
-        print("\n ************************* Firewall configuration below ****************************")
+        print(Fore.GREEN + "\n------------------- Firewall configuration below --------------------")
         print(config)
 
     if options.validate:
