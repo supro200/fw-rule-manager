@@ -9,9 +9,9 @@ from colorama import init, Fore, Style  # colored screen output
 def connect_to_fw_validate_config(config, device):
 
     try:
-        device.password = os.environ["FW_MAN_PASSWORD"]
+        device["password"] = os.environ["FW_MAN_PASSWORD"]
     except KeyError:
-        device.password = getpass.getpass()
+        device["password"] = getpass.getpass()
 
     print("------------ Deploying configuration --------------")
 
