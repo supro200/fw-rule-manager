@@ -7,13 +7,11 @@ class ZoneClass:
         self.SourceZones = []
         self.DestinationZones = []
 
-        source_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == SourceZone][
+        source_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == SourceZone][ZoneSetColumnName].items()
+
+        destination_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == DestinationZone][
             ZoneSetColumnName
         ].items()
-
-        destination_zones = zones_dataframe.loc[
-            zones_dataframe[ZoneNameColumnName] == DestinationZone
-        ][ZoneSetColumnName].items()
 
         for index, value in source_zones:
             self.SourceZones = list(value.replace(",", "").split(" "))
@@ -24,7 +22,6 @@ class ZoneClass:
 
 # --------------------------------------- Classes - ApplicationClass ---------------------------------------
 class ApplicationClass:
-
     def __init__(self, standard_apps_dataframe, Protocol="", SourcePort="", DestinationPortList="", Description=""):
 
         self.SourcePort = SourcePort if SourcePort else ""
@@ -37,43 +34,34 @@ class ApplicationClass:
             if port.isdigit():
                 print("DIGIT!", port)
                 dest_port_list.append(
-                    {
-                        "Name": f"{Protocol.lower()}-{port}",
-                        "Protocol": Protocol.lower(),
-                        "DestinationPort": port,
-                    }
+                    {"Name": f"{Protocol.lower()}-{port}", "Protocol": Protocol.lower(), "DestinationPort": port,}
                 )
             elif "-" in port:
                 dest_port_list.append(
-                    {
-                        "Name": f"{Protocol.lower()}-{port}",
-                        "Protocol": Protocol.lower(),
-                        "DestinationPort": port,
-                    }
+                    {"Name": f"{Protocol.lower()}-{port}", "Protocol": Protocol.lower(), "DestinationPort": port,}
                 )
             else:
-              dest_port = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][ApplicationPortColumnName].item()
-              app_protocol = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][
-                        ApplicationProtocolColumnName].item()
-              dest_port_list.append(
-                  {
-                      "Name": f"{app_protocol}-{dest_port}",
-                      "Protocol": app_protocol,
-                      "DestinationPort": dest_port,
-                  }
-              )
+                dest_port = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][
+                    ApplicationPortColumnName
+                ].item()
+                app_protocol = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][
+                    ApplicationProtocolColumnName
+                ].item()
+                dest_port_list.append(
+                    {"Name": f"{app_protocol}-{dest_port}", "Protocol": app_protocol, "DestinationPort": dest_port,}
+                )
             print(port)
 
         self.DestinationPortList = dest_port_list
 
-# ----------------------------------------------------------------
+    # ----------------------------------------------------------------
     def convert_to_device_format(self, device_type):
-        '''
+        """
         Converts Application object to spefic device config
 
         :param device_type: Network OS, such as junos
         :return: actual device config as a single string
-        '''
+        """
 
         result_string = ""
         if device_type == "junos":
@@ -86,24 +74,20 @@ class ApplicationClass:
                 result_string += "\n" + prefix + source_port + destination_port
         return result_string.lower()
 
-# ----------------------------------------------------------------
+    # ----------------------------------------------------------------
     def get_app_name(self):
         return f"{self.Protocol}_{self.DestinationPort}".lower()
 
 
 # --------------------------------------- Classes - AddressBookEntryClass ---------------------------------------
 
+
 class AddressBookEntryClass:
 
     name = ""
 
     def __init__(
-        self,
-        address_book_dataframe,
-        Name="",
-        Description="",
-        SourceNetwork="",
-        DestinationNetwork="",
+        self, address_book_dataframe, Name="", Description="", SourceNetwork="", DestinationNetwork="",
     ):
 
         address_book_dict = {}
@@ -113,16 +97,9 @@ class AddressBookEntryClass:
 
         for address in SourceNetwork:
             try:
-                if (
-                    ipaddress.IPv4Network(address).is_global
-                    or ipaddress.IPv4Network(address).is_private
-                ):
+                if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
                     address_book_list.append(
-                        {
-                            "name": "net-" + address.replace("/", "_"),
-                            "value": address,
-                            "direction": "source",
-                        }
+                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "source",}
                     )
             except ValueError:
                 if address == "any":
@@ -141,22 +118,13 @@ class AddressBookEntryClass:
         # -------------- Parse DestinationNetwork
         for address in DestinationNetwork:
             try:
-                if (
-                    ipaddress.IPv4Network(address).is_global
-                    or ipaddress.IPv4Network(address).is_private
-                ):
+                if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
                     address_book_list.append(
-                        {
-                            "name": "net-" + address.replace("/", "_"),
-                            "value": address,
-                            "direction": "destination",
-                        }
+                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "destination",}
                     )
             except ValueError:
                 if address == "any":
-                    address_book_list.append(
-                        {"name": "any", "value": "any", "direction": "destination"}
-                    )
+                    address_book_list.append({"name": "any", "value": "any", "direction": "destination"})
                 else:
                     address_book_list.append(
                         {
@@ -186,16 +154,12 @@ class AddressBookEntryClass:
                         or ipaddress.IPv4Network(item["value"]).is_private
                     ):
                         address_book_entry_command.append(
-                            f"set security address-book global address "
-                            f"{item['name']} "
-                            f"{item['value']}"
+                            f"set security address-book global address " f"{item['name']} " f"{item['value']}"
                         )
                 except ValueError:
                     if item["name"] != "any":
                         address_book_entry_command.append(
-                            f"set security address-book global address "
-                            f"{item['name']} "
-                            f"dns-name {item['value']}"
+                            f"set security address-book global address " f"{item['name']} " f"dns-name {item['value']}"
                         )
 
         result_string = "\n".join(str(x) for x in address_book_entry_command)
@@ -276,16 +240,11 @@ class AccessRuleClass:
         if device_type == "junos":
 
             if self.Action == ActionDelete:
-                result_string = (
-                    f"\ndelete security policies global" f" policy {(self.Name).replace(' ', '_')} "
-                )
+                result_string = f"\ndelete security policies global" f" policy {(self.Name).replace(' ', '_')} "
                 return result_string.lower()
 
             elif self.Action == ActionDeactivate:
-                result_string = (
-                    f"\ndeactivate security policies global"
-                    f" policy {(self.Name).replace(' ', '_')} "
-                )
+                result_string = f"\ndeactivate security policies global" f" policy {(self.Name).replace(' ', '_')} "
                 return result_string.lower()
 
             elif self.Action == ActionEnable:

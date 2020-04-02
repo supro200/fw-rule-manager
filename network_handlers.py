@@ -68,7 +68,7 @@ def connect_to_fw_validate_config(config, device):
 
     if "succeeds" in commit_check:
         print(Fore.GREEN + "----------- Success ----------- ")
-        #print(Style.RESET_ALL)
+        # print(Style.RESET_ALL)
         show_compare_commands = "show | compare"
         show_compare = net_connect.send_config_set(show_compare_commands, exit_config_mode=False)
         #     sleep(5)
@@ -87,7 +87,7 @@ def connect_to_fw_validate_config(config, device):
     #    f.close()
     else:
         print(Fore.RED + "------------ Validation failed - Rollback -----------")
-        #print(Style.RESET_ALL)
+        # print(Style.RESET_ALL)
         rollback = net_connect.send_command("rollback 0")
         print(rollback)
         # print ("the following device " + device + " had a commit error and has been rolled back")
@@ -97,4 +97,3 @@ def connect_to_fw_validate_config(config, device):
 
     print("\n")
     print(80 * "-")
-

@@ -43,5 +43,3 @@ virtual_srx = {
     "port": 22,
     "verbose": "True",
 }
-
-
