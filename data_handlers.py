@@ -12,6 +12,7 @@ from constdefs import *
 
 # -------------------------------------------------------------------------------------------
 
+
 def load_source(filename):
     # Load data from various Excel tabs into dataframes
     xl = pd.ExcelFile(filename)
@@ -29,30 +30,29 @@ def load_source(filename):
     temp_df4 = xl.parse(standard_apps_sheet_name)
     standard_apps_dataframe = temp_df4.replace(np.nan, "", regex=True)
 
-    #print(Fore.GREEN + f"--------------- Loaded Data Sources -------------------")
-    #print(f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}")
+    # print(Fore.GREEN + f"--------------- Loaded Data Sources -------------------")
+    # print(f"records found in {traffic_flows_sheet_name} sheet: {str(len(traffic_flows_dataframe[RuleColumnName]))}")
 
     return traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe
 
 
-def parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe):
+# -------------------------------------------------------------------------------------------
 
-    # --------------------- Parse Actions - Enabled/Delete/etc---------------------
 
+def parse_flows_dataframes(traffic_flows_dataframe):
     action_list = []
 
-    # Get Headers from the dataframe
+    # Get Headers from the dataframe and search for Action header - Active/Delete/etc
     headers_list = list(traffic_flows_dataframe.columns.values)
 
-    # search for Action header - Active/Delete/etc
     for header in headers_list:
         if (ActionEnable in header) or (ActionDelete in header):
             action_list.append(header)
     # Special case when Action is Enabled and set to No - deactivate
     action_list.append(ActionDeactivate)
 
-    # --------------------------------------- Process dataframe ---------------------------------------
-    # Result List of Objects - Access Rules
+    # Process dataframe
+    # Result is List of Access Rules objects
     acl_list = []
 
     # process each action - Enable/Delete/etc - create a sub-dataframe with the required actions only
@@ -61,7 +61,7 @@ def parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_data
         if action == ActionDeactivate:
             action_dataframe = traffic_flows_dataframe.loc[
                 (traffic_flows_dataframe[ActionEnable] == "No") & (traffic_flows_dataframe[ActionDelete] == "No")
-            ]
+                ]
         elif action == ActionEnable:
             action_dataframe = traffic_flows_dataframe.loc[
                 (traffic_flows_dataframe[action] == "Yes") & (traffic_flows_dataframe[ActionDelete] == "No")
@@ -69,6 +69,7 @@ def parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_data
         elif action == ActionDelete:
             action_dataframe = traffic_flows_dataframe.loc[(traffic_flows_dataframe[ActionDelete] == "Yes")]
 
+        # Process each Action Dataframe and generate rules for this action
         for index, row in action_dataframe.iterrows():
             # app_definition = clsApplication()
             acl = AccessRuleClass(
@@ -86,10 +87,7 @@ def parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_data
             )
             acl_list.append(acl)
 
-    return (
-        acl_list,
-        action_list
-    )
+    return (acl_list, action_list)
 
 
 def generate_config(acl_list, action_list, address_book_dataframe, zones_dataframe, standard_apps_dataframe, device_os):

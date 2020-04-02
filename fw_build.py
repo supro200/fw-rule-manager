@@ -8,7 +8,7 @@ from pathlib import Path  # OS-agnostic file handling
 from colorama import init, Fore  # colored screen output
 
 from constdefs import *
-from data_handlers import load_source, parse_dataframes, generate_config
+from data_handlers import load_source, parse_flows_dataframes, generate_config
 from network_handlers import connect_to_fw_validate_config
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -36,7 +36,9 @@ class CustomParser(argparse.ArgumentParser):
         print("Use --help or -h for help")
         exit(2)
 
+
 # -------------------------------------------------------------------------------------------
+
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -76,10 +78,12 @@ def main():
     network_os = options.network_os if options.network_os else "junos"
 
     # 1. parse Excel into dataframes
-    traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe = load_source(source_filename)
+    traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe = load_source(
+        source_filename
+    )
 
     # 2. Get list of Firewall Rules and actions
-    acl_list, action_list = parse_dataframes(traffic_flows_dataframe, address_book_dataframe, zones_dataframe, standard_apps_dataframe)
+    acl_list, action_list = parse_flows_dataframes(traffic_flows_dataframe)
 
     # 3. Generate config for a given network OS
     config = generate_config(
@@ -102,6 +106,7 @@ def main():
 
     if options.validate:
         connect_to_fw_validate_config(config, virtual_srx)
+
 
 if __name__ == "__main__":
     main()
