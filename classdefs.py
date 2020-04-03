@@ -30,34 +30,38 @@ class ApplicationClass:
         self.SourcePort = SourcePort if SourcePort else ""
         self.DestinationPortLis = []
 
-        dest_port_dict = {}
         dest_port_list = []
 
         for port_or_app in DestinationPortList:
             if port_or_app.isdigit():
                 dest_port_list.append(
-                    {"Name": f"{Protocol.lower()}-{port_or_app}", "Protocol": Protocol.lower(),
-                     "DestinationPort": port_or_app}
+                    {
+                        "Name": f"{Protocol.lower()}-{port_or_app}",
+                        "Protocol": Protocol.lower(),
+                        "DestinationPort": port_or_app,
+                    }
                 )
             elif "-" in port_or_app:
                 dest_port_list.append(
-                    {"Name": f"{Protocol.lower()}-{port_or_app}", "Protocol": Protocol.lower(),
-                     "DestinationPort": port_or_app}
+                    {
+                        "Name": f"{Protocol.lower()}-{port_or_app}",
+                        "Protocol": Protocol.lower(),
+                        "DestinationPort": port_or_app,
+                    }
                 )
             else:
                 try:
-                    app_protocol = \
-                    standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port_or_app][
-                        ApplicationProtocolColumnName
-                    ].item()
-                except  ValueError as e:
+                    app_protocol = standard_apps_dataframe.loc[
+                        standard_apps_dataframe[ApplicationColumnName] == port_or_app
+                        ][ApplicationProtocolColumnName].item()
+                except ValueError as e:
                     print(f"Exception:{e}\n\n Exiting")
                     exit(1)
 
                 if app_protocol == ("tcp" or "udp"):
-                    dest_port = \
-                    standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port_or_app][
-                        ApplicationPortColumnName].item()
+                    dest_port = standard_apps_dataframe.loc[
+                        standard_apps_dataframe[ApplicationColumnName] == port_or_app
+                        ][ApplicationPortColumnName].item()
                 else:
                     dest_port = ""
 
@@ -68,18 +72,20 @@ class ApplicationClass:
 
     # ----------------------------------------------------------------
     def check_standard_app(self, acl_app, standard_app_definitions):
-        '''
+        """
         Check if Application in ACL is already defined in Network OS
         :param acl_app: Application object to check
         :param standard_app_definitions:
         :return: if found - Standart application name, such as junos-bgp, or None if not found
-        '''
+        """
 
-        if "-" not in str(acl_app['DestinationPort']):
+        if "-" not in str(acl_app["DestinationPort"]):
             for app in standard_app_definitions:
-                if int(app['destination-port']) == int(acl_app['DestinationPort']) and app['protocol'] == acl_app[
-                    'Protocol']:
-                    return app['name']
+                if (
+                        int(app["destination-port"]) == int(acl_app["DestinationPort"])
+                        and app["protocol"] == acl_app["Protocol"]
+                ):
+                    return app["name"]
         return None
 
     # ----------------------------------------------------------------
@@ -103,7 +109,7 @@ class ApplicationClass:
                 app_name = self.check_standard_app(item, standard_app_definitions)
 
                 if app_name:
-                    item['Name'] = app_name
+                    item["Name"] = app_name
                 else:
                     prefix = f"set applications application {item['Name']} protocol {item['Protocol']} destination-port {item['DestinationPort']}".lower()
                     result_string += "\n" + prefix
@@ -112,6 +118,7 @@ class ApplicationClass:
 
 
 # --------------------------------------- Classes - AddressBookEntryClass ---------------------------------------
+
 
 class AddressBookEntryClass:
 
@@ -130,7 +137,7 @@ class AddressBookEntryClass:
             try:
                 if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
                     address_book_list.append(
-                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "source",}
+                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "source"}
                     )
             except ValueError:
                 if address == "any":
@@ -151,7 +158,7 @@ class AddressBookEntryClass:
             try:
                 if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
                     address_book_list.append(
-                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "destination",}
+                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "destination"}
                     )
             except ValueError:
                 if address == "any":
@@ -271,11 +278,11 @@ class AccessRuleClass:
         if device_type == "junos":
 
             if self.Action == ActionDelete:
-                result_string = f"\ndelete security policies global" f" policy {(self.Name).replace(' ', '_')} "
+                result_string = f"\ndelete security policies global" f" policy {self.Name.replace(' ', '_')} "
                 return result_string.lower()
 
             elif self.Action == ActionDeactivate:
-                result_string = f"\ndeactivate security policies global" f" policy {(self.Name).replace(' ', '_')} "
+                result_string = f"\ndeactivate security policies global" f" policy {self.Name.replace(' ', '_')} "
                 return result_string.lower()
 
             elif self.Action == ActionEnable:
@@ -291,7 +298,7 @@ class AccessRuleClass:
 
                 result_string = (
                     f"set security policies global"
-                    f" policy {(self.Name).replace(' ', '_')} "
+                    f" policy {self.Name.replace(' ', '_')} "
                     f' description "{self.Description}"'
                     f" match"
                     f" from-zone [{' '.join(zones_definition.SourceZones)}]"
@@ -300,13 +307,11 @@ class AccessRuleClass:
                     f" destination-address [{' '.join(str(x) for x in destination_address_book_entries)}]"
                     f" application [{' '.join(str(x) for x in application_entries)}]"
                     f"\nset security policies global"
-                    f" policy {(self.Name).replace(' ', '_')}"
+                    f" policy {self.Name.replace(' ', '_')}"
                     f" then {self.RuleAction}"
                     f"\nactivate security policies global"
-                    f" policy {(self.Name).replace(' ', '_')}"
+                    f" policy {self.Name.replace(' ', '_')}"
                 )
-
-                # TODO - implement deny statement
 
         elif device_type == "Cisco ASA":
             # placeholder
