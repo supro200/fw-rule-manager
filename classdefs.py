@@ -1,4 +1,5 @@
 import ipaddress
+import json
 
 from constdefs import *
 
@@ -32,31 +33,59 @@ class ApplicationClass:
         dest_port_dict = {}
         dest_port_list = []
 
-        for port in DestinationPortList:
-            if port.isdigit():
+        for port_or_app in DestinationPortList:
+            if port_or_app.isdigit():
                 dest_port_list.append(
-                    {"Name": f"{Protocol.lower()}-{port}", "Protocol": Protocol.lower(), "DestinationPort": port,}
+                    {"Name": f"{Protocol.lower()}-{port_or_app}", "Protocol": Protocol.lower(),
+                     "DestinationPort": port_or_app}
                 )
-            elif "-" in port:
+            elif "-" in port_or_app:
                 dest_port_list.append(
-                    {"Name": f"{Protocol.lower()}-{port}", "Protocol": Protocol.lower(), "DestinationPort": port,}
+                    {"Name": f"{Protocol.lower()}-{port_or_app}", "Protocol": Protocol.lower(),
+                     "DestinationPort": port_or_app}
                 )
             else:
-                dest_port = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][
-                    ApplicationPortColumnName
-                ].item()
-                app_protocol = standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port][
-                    ApplicationProtocolColumnName
-                ].item()
+                try:
+                    app_protocol = \
+                    standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port_or_app][
+                        ApplicationProtocolColumnName
+                    ].item()
+                except  ValueError as e:
+                    print(f"Exception:{e}\n\n Exiting")
+                    exit(1)
+
+                if app_protocol == ("tcp" or "udp"):
+                    dest_port = \
+                    standard_apps_dataframe.loc[standard_apps_dataframe[ApplicationColumnName] == port_or_app][
+                        ApplicationPortColumnName].item()
+                else:
+                    dest_port = ""
+
                 dest_port_list.append(
-                    {"Name": f"{app_protocol}-{dest_port}", "Protocol": app_protocol, "DestinationPort": dest_port,}
+                    {"Name": f"{app_protocol}-{dest_port}", "Protocol": app_protocol, "DestinationPort": dest_port}
                 )
         self.DestinationPortList = dest_port_list
 
     # ----------------------------------------------------------------
+    def check_standard_app(self, acl_app, standard_app_definitions):
+        '''
+        Check if Application in ACL is already defined in Network OS
+        :param acl_app: Application object to check
+        :param standard_app_definitions:
+        :return: if found - Standart application name, such as junos-bgp, or None if not found
+        '''
+
+        if "-" not in str(acl_app['DestinationPort']):
+            for app in standard_app_definitions:
+                if int(app['destination-port']) == int(acl_app['DestinationPort']) and app['protocol'] == acl_app[
+                    'Protocol']:
+                    return app['name']
+        return None
+
+    # ----------------------------------------------------------------
     def convert_to_device_format(self, device_type):
         """
-        Converts Application object to spefic device config
+        Converts Application object to specific device config
 
         :param device_type: Network OS, such as junos
         :return: actual device config as a single string
@@ -65,21 +94,24 @@ class ApplicationClass:
         result_string = ""
         if device_type == "junos":
 
+            with open(junos_app_definitions, "r") as f:
+                standard_app_definitions = json.load(f)
+
+            # For every destination port in ACL check if a it's a standard application in device
             for item in self.DestinationPortList:
-                prefix = f"set applications application {item['Name']} protocol {item['Protocol']}"
-                source_port = f"" if self.SourcePort == "any" else f"{self.SourcePort}"
-                destination_port = f" destination-port {item['DestinationPort']}".lower()
 
-                result_string += "\n" + prefix + source_port + destination_port
+                app_name = self.check_standard_app(item, standard_app_definitions)
+
+                if app_name:
+                    item['Name'] = app_name
+                else:
+                    prefix = f"set applications application {item['Name']} protocol {item['Protocol']} destination-port {item['DestinationPort']}".lower()
+                    result_string += "\n" + prefix
+
         return result_string.lower()
-
-    # ----------------------------------------------------------------
-    def get_app_name(self):
-        return f"{self.Protocol}_{self.DestinationPort}".lower()
 
 
 # --------------------------------------- Classes - AddressBookEntryClass ---------------------------------------
-
 
 class AddressBookEntryClass:
 
@@ -267,7 +299,6 @@ class AccessRuleClass:
                     f" source-address [{' '.join(str(x) for x in source_address_book_entries)}]"
                     f" destination-address [{' '.join(str(x) for x in destination_address_book_entries)}]"
                     f" application [{' '.join(str(x) for x in application_entries)}]"
-                    # {application_definition.get_app_name()}"
                     f"\nset security policies global"
                     f" policy {(self.Name).replace(' ', '_')}"
                     f" then {self.RuleAction}"

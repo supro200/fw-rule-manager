@@ -40,6 +40,7 @@ def load_source(filename):
 
 
 def parse_flows_dataframes(traffic_flows_dataframe):
+
     action_list = []
 
     # Get Headers from the dataframe and search for Action header - Active/Delete/etc
@@ -61,7 +62,7 @@ def parse_flows_dataframes(traffic_flows_dataframe):
         if action == ActionDeactivate:
             action_dataframe = traffic_flows_dataframe.loc[
                 (traffic_flows_dataframe[ActionEnable] == "No") & (traffic_flows_dataframe[ActionDelete] == "No")
-                ]
+            ]
         elif action == ActionEnable:
             action_dataframe = traffic_flows_dataframe.loc[
                 (traffic_flows_dataframe[action] == "Yes") & (traffic_flows_dataframe[ActionDelete] == "No")

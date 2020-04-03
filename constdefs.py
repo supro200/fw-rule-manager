@@ -4,7 +4,7 @@ ProtocolColumnName = "Protocol"
 SourceNetworkColumnName = "Source Network"
 SourcePortColumnName = "Source Port"
 DestinationNetworkColumnName = "Destination Network"
-DestinationPortColumnName = "Destination Port"
+DestinationPortColumnName = "Destination Port or Application"
 ReferenceColumnName = "Reference"
 RuleColumnName = "Rule Name"
 DescriptionColumnName = "Description"
@@ -43,3 +43,4 @@ virtual_srx = {
     "port": 22,
     "verbose": "True",
 }
+junos_app_definitions = "junos-standard-apps.json"

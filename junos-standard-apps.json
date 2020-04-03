@@ -1,20 +1,39 @@
 [
     {
-        "name" : "junos-tftp",
-        "application-protocol" : "tftp",
-        "protocol" : "udp",
-        "destination-port" : "69"
+        "name": " junos-icmp-all",
+        "protocol": "icmp",
+        "destination-port": "999"
     },
     {
-        "comment" : "#\n# Network Basic Input Output System  - networking protocol used on\n# Windows networks   session service port\n#",
-        "name" : "junos-netbios-session",
-        "protocol" : "tcp",
-        "destination-port" : "139"
+        "name": " junos-icmp-ping",
+        "protocol": "icmp",
+        "destination-port": "0"
     },
-        {
-        "name" : "junos-smb-session",
-        "protocol" : "tcp",
-        "destination-port" : "445"
+    {
+        "name": "junos-tftp",
+        "protocol": "udp",
+        "destination-port": "69"
+    },
+    {
+        "name": "junos-ftp",
+        "protocol": "tcp",
+        "destination-port": "21"
+    },
+    {
+        "name": "junos-ftp-data",
+        "protocol": "tcp",
+        "destination-port": "20"
+    },
+    {
+        "comment": "#\n# Network Basic Input Output System  - networking protocol used on\n# Windows networks   session service port\n#",
+        "name": "junos-netbios-session",
+        "protocol": "tcp",
+        "destination-port": "139"
+    },
+    {
+        "name": "junos-smb-session",
+        "protocol": "tcp",
+        "destination-port": "445"
     },
     {
         "name" : "junos-ssh",
