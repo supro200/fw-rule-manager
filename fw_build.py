@@ -48,7 +48,11 @@ def parse_args(args=sys.argv[1:]):
     # required = parser.add_argument_group("required arguments")
     optional = parser.add_argument_group("optional arguments")
     optional.add_argument(
-        "--validate", default=False, required=False, action="store_true", help="Validate with the live device",
+        "--validate",
+        default=False,
+        required=False,
+        action="store_true",
+        help="Validate with the live device",
     )
     optional.add_argument(
         "--screen-output",

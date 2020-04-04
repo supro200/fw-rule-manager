@@ -21,6 +21,8 @@ ApplicationColumnName = "Application"
 ApplicationProtocolColumnName = "Protocol"
 ApplicationPortColumnName = "Port"
 
+DrodDownFieldNonStandartProtocol = "Other"
+
 test_filename = "fw_rules_test_02.xlsx"
 
 traffic_flows_sheet_name = "Traffic Flows"

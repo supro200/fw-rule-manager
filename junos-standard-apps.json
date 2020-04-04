@@ -1,12 +1,27 @@
 [
     {
-        "name": " junos-icmp-all",
+        "name": "junos-icmp-all",
         "protocol": "icmp",
         "destination-port": "999"
     },
     {
-        "name": " junos-icmp-ping",
+        "name": "junos-icmp-ping",
         "protocol": "icmp",
+        "destination-port": "0"
+    },
+    {
+        "name": "junos-icmp6-all",
+        "protocol": "icmp6",
+        "destination-port": "999"
+    },
+    {
+        "name": "junos-gre",
+        "protocol": "gre",
+        "destination-port": "0"
+    },
+    {
+        "name": "junos-ospf",
+        "protocol": "ospf",
         "destination-port": "0"
     },
     {

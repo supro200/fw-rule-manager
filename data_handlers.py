@@ -61,8 +61,9 @@ def parse_flows_dataframes(traffic_flows_dataframe):
         # process special case when Active is set to No, deactivate the rule
         if action == ActionDeactivate:
             action_dataframe = traffic_flows_dataframe.loc[
-                (traffic_flows_dataframe[ActionEnable] == "No") & (traffic_flows_dataframe[ActionDelete] == "No")
-            ]
+                (traffic_flows_dataframe[ActionEnable] == "No")
+                & (traffic_flows_dataframe[ActionDelete] == "No")
+                ]
         elif action == ActionEnable:
             action_dataframe = traffic_flows_dataframe.loc[
                 (traffic_flows_dataframe[action] == "Yes") & (traffic_flows_dataframe[ActionDelete] == "No")
@@ -91,7 +92,9 @@ def parse_flows_dataframes(traffic_flows_dataframe):
     return (acl_list, action_list)
 
 
-def generate_config(acl_list, action_list, address_book_dataframe, zones_dataframe, standard_apps_dataframe, device_os):
+def generate_config(
+        acl_list, action_list, address_book_dataframe, zones_dataframe, standard_apps_dataframe, device_os
+):
     """
 
     :param acl_list:
@@ -106,7 +109,8 @@ def generate_config(acl_list, action_list, address_book_dataframe, zones_datafra
     device_config = ""
     for action in action_list:
         device_config = (
-                device_config + f"\n\n# ------------------------ Rules to {action} ---------------------------------"
+                device_config
+                + f"\n\n# ------------------------ Rules to {action} ---------------------------------"
         )
 
         for acl in acl_list:
@@ -124,8 +128,12 @@ def generate_config(acl_list, action_list, address_book_dataframe, zones_datafra
                 )
                 device_config = device_config + f"\n# -------- {acl.Description} -------------"
                 if action == ActionEnable:
-                    device_config = device_config + application_definition.convert_to_device_format(device_os) + "\n"
-                    device_config = device_config + address_book_definition.convert_to_device_format(device_os) + "\n"
+                    device_config = (
+                            device_config + application_definition.convert_to_device_format(device_os) + "\n"
+                    )
+                    device_config = (
+                            device_config + address_book_definition.convert_to_device_format(device_os) + "\n"
+                    )
 
                 device_config = (
                     device_config

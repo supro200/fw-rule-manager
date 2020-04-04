@@ -10,7 +10,9 @@ class ZoneClass:
         self.SourceZones = []
         self.DestinationZones = []
 
-        source_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == SourceZone][ZoneSetColumnName].items()
+        source_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == SourceZone][
+            ZoneSetColumnName
+        ].items()
 
         destination_zones = zones_dataframe.loc[zones_dataframe[ZoneNameColumnName] == DestinationZone][
             ZoneSetColumnName
@@ -25,7 +27,9 @@ class ZoneClass:
 
 # --------------------------------------- Classes - ApplicationClass ---------------------------------------
 class ApplicationClass:
-    def __init__(self, standard_apps_dataframe, Protocol="", SourcePort="", DestinationPortList="", Description=""):
+    def __init__(
+            self, standard_apps_dataframe, Protocol="", SourcePort="", DestinationPortList="", Description=""
+    ):
 
         self.SourcePort = SourcePort if SourcePort else ""
         self.DestinationPortLis = []
@@ -33,41 +37,49 @@ class ApplicationClass:
         dest_port_list = []
 
         for port_or_app in DestinationPortList:
+
+            if "-" in port_or_app:
+                part = port_or_app.split("-")
+
             if port_or_app.isdigit():
-                dest_port_list.append(
-                    {
-                        "Name": f"{Protocol.lower()}-{port_or_app}",
-                        "Protocol": Protocol.lower(),
-                        "DestinationPort": port_or_app,
-                    }
-                )
-            elif "-" in port_or_app:
-                dest_port_list.append(
-                    {
-                        "Name": f"{Protocol.lower()}-{port_or_app}",
-                        "Protocol": Protocol.lower(),
-                        "DestinationPort": port_or_app,
-                    }
-                )
+                # check if port number
+                app_name = f"{Protocol.lower()}-{port_or_app}"
+                app_protocol = Protocol.lower()
+                app_dest_port = port_or_app
+
+            # Check if port range, not app.name with dash symbol
+            elif "-" in port_or_app and part[0].isdigit() and part[1].isdigit():
+                app_name = f"{Protocol.lower()}-{port_or_app}"
+                app_protocol = Protocol.lower()
+                app_dest_port = port_or_app
             else:
+                # Not digit and not range
                 try:
+                    # try to locate an App based on name from App sheet
                     app_protocol = standard_apps_dataframe.loc[
                         standard_apps_dataframe[ApplicationColumnName] == port_or_app
                         ][ApplicationProtocolColumnName].item()
                 except ValueError as e:
+                    print(
+                        f"Check if application {port_or_app} is defined in sheet {standard_apps_sheet_name} column {ApplicationColumnName} and its name is unique"
+                    )
                     print(f"Exception:{e}\n\n Exiting")
+                    raise e
                     exit(1)
-
                 if app_protocol == ("tcp" or "udp"):
-                    dest_port = standard_apps_dataframe.loc[
+                    # TODO: if app_protocol not in DrodDownFieldNonStandartProtocol
+                    app_dest_port = standard_apps_dataframe.loc[
                         standard_apps_dataframe[ApplicationColumnName] == port_or_app
                         ][ApplicationPortColumnName].item()
+                    app_name = f"{Protocol.lower()}-{port_or_app}"
                 else:
-                    dest_port = ""
+                    app_name = f"{port_or_app}"
+                    app_dest_port = 0
+                    # app_protocol = DrodDownFieldNonStandartProtocol
 
-                dest_port_list.append(
-                    {"Name": f"{app_protocol}-{dest_port}", "Protocol": app_protocol, "DestinationPort": dest_port}
-                )
+            dest_port_list.append(
+                {"Name": app_name, "Protocol": app_protocol, "DestinationPort": app_dest_port, }
+            )
         self.DestinationPortList = dest_port_list
 
     # ----------------------------------------------------------------
@@ -82,8 +94,13 @@ class ApplicationClass:
         if "-" not in str(acl_app["DestinationPort"]):
             for app in standard_app_definitions:
                 if (
+                        # match app by protocl and port number
                         int(app["destination-port"]) == int(acl_app["DestinationPort"])
                         and app["protocol"] == acl_app["Protocol"]
+                ) or (
+                        # Port 0, so no TCP or UDP protocol, match by name
+                        int(acl_app["DestinationPort"]) == 0
+                        and app["name"] == acl_app["Name"]
                 ):
                     return app["name"]
         return None
@@ -158,7 +175,11 @@ class AddressBookEntryClass:
             try:
                 if ipaddress.IPv4Network(address).is_global or ipaddress.IPv4Network(address).is_private:
                     address_book_list.append(
-                        {"name": "net-" + address.replace("/", "_"), "value": address, "direction": "destination"}
+                        {
+                            "name": "net-" + address.replace("/", "_"),
+                            "value": address,
+                            "direction": "destination",
+                        }
                     )
             except ValueError:
                 if address == "any":
@@ -197,7 +218,9 @@ class AddressBookEntryClass:
                 except ValueError:
                     if item["name"] != "any":
                         address_book_entry_command.append(
-                            f"set security address-book global address " f"{item['name']} " f"dns-name {item['value']}"
+                            f"set security address-book global address "
+                            f"{item['name']} "
+                            f"dns-name {item['value']}"
                         )
 
         result_string = "\n".join(str(x) for x in address_book_entry_command)
@@ -282,7 +305,9 @@ class AccessRuleClass:
                 return result_string.lower()
 
             elif self.Action == ActionDeactivate:
-                result_string = f"\ndeactivate security policies global" f" policy {self.Name.replace(' ', '_')} "
+                result_string = (
+                    f"\ndeactivate security policies global" f" policy {self.Name.replace(' ', '_')} "
+                )
                 return result_string.lower()
 
             elif self.Action == ActionEnable:
