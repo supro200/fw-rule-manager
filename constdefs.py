@@ -23,7 +23,7 @@ ApplicationPortColumnName = "Port"
 
 DrodDownFieldNonStandartProtocol = "Other"
 
-test_filename = "fw_rules_test_02.xlsx"
+test_filename = "fw_rules_test.xlsx"
 
 traffic_flows_sheet_name = "Traffic Flows"
 address_book_sheet_name = "Address Book"
