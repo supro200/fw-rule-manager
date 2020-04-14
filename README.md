@@ -10,14 +10,14 @@ At this stage security rules are built for JunOS only, but the application and d
 The Excel file serves as a frontend and database.
 
 The tool itself doesn't deploy the generated configuration to firewalls, it only generates output text files.
-However, it allows an operator to deploy the configuration with pre-defined test devices to check if it gives the expected outcome.
+However, it allows an operator to deploy the configuration to pre-defined test devices to check if it gives the expected outcome.
 
 Main features:
    * Builds security rules, associated address book entries and application definitions
    * Allows to create new security rules, deactivate or delete them
    * Takes into account built-in standard firewall applications
    * Supports custom source/destination zone sets
-   * Allows to use pre-defined hostnames as source/destination networks
+   * Allows to use pre-defined hostnames or objects as source/destination networks
    * Supports non-TCP/UDP protocols, custom ports and applications
    * Supports validation with real devices
    * Supports filtering, sorting and reporting using standard Excel features
@@ -60,9 +60,9 @@ The tool uses pre-defined Excel spreadsheet with the followings Tabs:
 ### Traffic flows
 
 This is the main user interface where Traffic Flows are defined.
-Based on these flows the tool builds security rules.
+Based on these flows the tool builds security rules for a given OS.
 In most cases, this is the only tab which requires editing.
-The interface:
+User interface is a simple Excel spreadsheet:
 ![Image description](img/main-ui.png)
 
 It consists of the following columns:
@@ -79,21 +79,21 @@ It consists of the following columns:
 * Protocol
    * TCP or UDP - define Destination Port in the next column
    * Other - choose application defined in Applications Tab
-* Action - choose from a list, can be one of the following
+* Action - choose from a list, can be one of the following:
    * permit
    * deny
    * reject
    
 These actions are defined in a Dropdown Fields Tab
 
-Finally, two columns which define the sate of the security rule in the form of Yes/No
+Finally, two columns which define the state of the security rule in the form of Yes/No
 * Enable
    * If _Yes_ the configuration of the rule will be generated and active - Default setting. 
-   * If _No_ the configuration will be generated so the rule will be deactivated. This is useful for existing rules.   
+   * If _No_ the configuration to deactivate the rule will be generated. This is useful for existing rules.   
 * Delete
    * _No_ is a default setting, nothing happens.
-   * _Yes_ the configuration will be generated so the rule will be deleted. This is useful for existing rules.
-     Note that Enable is ignored and the rule wil lbe deleted from a device.
+   * _Yes_ the configuration to delete the rule will be generated. This is useful for existing rules.
+     Note that Enable is ignored and the rule will be deleted from a device.
 To recreate the rule, Change _Delete_ to _No_ and _Enable_ to _Yes_
 
 This is the only Tab to be populated, all other Tabs below are optional.
@@ -140,6 +140,40 @@ However, it support the following options:
 >
 > --screen-output - Prints report to screen. Text file is always generated. Turned on by default.
 >
+
+## Installation
+
+It is recommended to build a Python 3 virtual environment. 
+Details on how to set one up can be found [here](https://docs.python.org/3/library/venv.html). 
+
+If you use a Windows PC, follow these steps:
+1. Download and install [python 3](https://www.python.org/downloads/)
+2. Setup virtual environment 
+3. Activate it
+4. Download source code
+5. Install requirements
+
+Windows:
+```
+python -m venv <path>
+<path>\Scripts\activate.bat
+git clone https://github.com/supro200/fw-rule-manager.git
+cd fw-rule-manager
+pip install -r requirements.txt
+python fw_build.py
+```
+Linux:
+```
+sudo apt-get update
+sudo apt install python3 python3-pip python3-venv
+git clone https://github.com/supro200/fw-rule-manager.git
+cd fw-rule-manager/
+python3 -m venv .
+source bin/activate
+pip3 install -r requirements.txt
+python3 fw_build.py
+```
+
 
 This work is in progress
 
