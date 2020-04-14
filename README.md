@@ -6,11 +6,11 @@
 This tool allows to build and manage firewall security rules based on values in an Excel spreadsheet.
 
 This allows an operator to use a familiar Microsoft Excel interface to manage firewall rules on real hardware devices without knowing device-specific CLI.
-At this stage security rules are built for JunOS only, but the application and data structures allow to manage the security configuration for other device types should this be needed.
+At this stage security rules are built for JunOS only, but the application and data structures allows an operator to manage the security configuration for other device types, should this be needed.
 The Excel file serves as a frontend and database.
 
-The tool itself doesn't deploy the generated configuration to firewalls, only generates output text files.
-However, it allows to deploy the configuration with pre-defined test devices to check if it gives the expected outcome.
+The tool itself doesn't deploy the generated configuration to firewalls, it only generates output text files.
+However, it allows an operator to deploy the configuration with pre-defined test devices to check if it gives the expected outcome.
 
 Main features:
    * Builds security rules, associated address book entries and application definitions
@@ -26,23 +26,24 @@ Main features:
 
 ### Add a new rule
 1. Open Traffic Flows Tab
-2. Enter Flow Name, Description
-3. Choose Source Zone from a dropdown list
-4. Enter Source Network either as network/prefix or copy-paste from Address Book Tab
-5. Similarly, Choose Source Zone from a dropdown list and enter Destination Network
-6. Specify protocol TCP, UDP or other
-7. For TCP and UDP enter port or copy-paste from Application Tab, for other protocol, copy-paste from Application Tab 
-8. Set Enable to Yes
+2. Enter **Flow Name**, **Description**
+3. Choose **Source Zone** from a dropdown list
+4. Enter **Source Network** either as network/prefix or copy-paste from Address Book Tab
+5. Similarly, Choose **Destination Zone** from a dropdown list and enter **Destination Network**
+6. Specify **Protocol** - TCP, UDP or other
+7. For TCP and UDP enter **Port** or copy-paste from Application Tab, for other protocol, copy-paste from Application Tab 
+8. Set **Enable** to Yes
 9. Set Delete to No
 
 ### Deactivate existing rule
 1. Open Traffic Flows Tab
 2. Choose Flow by its Name
-3. Switch Enable to No
+3. Switch **Enable** to **No**
+
 ### Delete existing rule
 1. Open Traffic Flows Tab
 2. Choose Flow by its Name
-3. Switch Delete to Yes
+3. Switch **Delete** to **Yes**
 
 ## How it works
 The tool performs the following main steps: 
@@ -56,7 +57,8 @@ The tool uses pre-defined Excel spreadsheet with the followings Tabs:
 
 ![Image description](img/tabs.png)
 
-###Traffic flows
+### Traffic flows
+
 This is the main user interface where Traffic Flows are defined.
 Based on these flows the tool builds security rules.
 In most cases, this is the only tab which requires editing.
@@ -95,9 +97,11 @@ To recreate the rule, Change _Delete_ to _No_ and _Enable_ to _Yes_
 
 This is the only Tab to be populated, all other Tabs below are optional.
 
-###Address Book
+### Address Book
+
 This Tab consists of pre-defined Objects which cab be used as Source/Destination in Traffic Flows
 These objects will be built as a part of device configuration
+
 ![Image description](img/address-book.png)
 
 It consists of the following columns:
@@ -105,19 +109,22 @@ It consists of the following columns:
 * Network - can in be CIDR format, such as 10.2.2.0/24, or DNS host name
 * Description - free-text description
 
-###Zones
+### Zones
+
 Pre-defined zones or zone sets
 Note that the configuration for the zones are not generated and it's assumed zones exist on the target device
 Zone Name from this Tab is used in Traffic Flow as Source/Destination zone.
 Normally this Tab is read-only.
+
 ![Image description](img/zones.png)
 
-###Applications
+### Applications
 Pre-defined list of standard applications which can be used in Traffic Flow instead or port number, such as _https_
 If Protocol is not TCP or UDP, Port can have any value
+
 ![Image description](img/apps.png)
 
-###Drop-down Fields
+### Drop-down Fields
 Read-only Tab, not for user input, but can be customised to add more Protocols or Actions if necessary
 
 ## CLI options
