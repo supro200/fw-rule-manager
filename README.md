@@ -83,9 +83,10 @@ It consists of the following columns:
    * permit
    * deny
    * reject
+   
 These actions are defined in a Dropdown Fields Tab
 
-Finally two columns which define the sate of the security rule in the form of Yes/No
+Finally, two columns which define the sate of the security rule in the form of Yes/No
 * Enable
    * If _Yes_ the configuration of the rule will be generated and active - Default setting. 
    * If _No_ the configuration will be generated so the rule will be deactivated. This is useful for existing rules.   
