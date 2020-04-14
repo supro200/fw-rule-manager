@@ -190,7 +190,7 @@ pip3 install -r requirements.txt
 python3 fw_build.py
 ```
 
-
+Thanks Dusan Savic, David Moon and Paddy Singh for valuable comments and feedback.  
 This work is in progress
 
 Any feedback, contributions, and requests are welcome.
