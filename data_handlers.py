@@ -79,7 +79,7 @@ def parse_flows_dataframes(traffic_flows_dataframe):
                 traffic_flows_dataframe.ix[index, DescriptionColumnName],
                 action,
                 traffic_flows_dataframe.ix[index, ProtocolColumnName],
-                traffic_flows_dataframe.ix[index, SourcePortColumnName],
+#                traffic_flows_dataframe.ix[index, SourcePortColumnName],
                 traffic_flows_dataframe.ix[index, SourceZoneColumnName],
                 traffic_flows_dataframe.ix[index, SourceNetworkColumnName],
                 traffic_flows_dataframe.ix[index, DestinationZoneColumnName],
@@ -116,7 +116,7 @@ def generate_config(
         for acl in acl_list:
             if acl.Action == action:
                 application_definition = ApplicationClass(
-                    standard_apps_dataframe, acl.Protocol, acl.SourcePort, acl.DestinationPort
+                    standard_apps_dataframe, acl.Protocol, acl.DestinationPort
                 )
                 zones_definition = ZoneClass(zones_dataframe, acl.SourceZone, acl.DestinationZone)
                 address_book_definition = AddressBookEntryClass(

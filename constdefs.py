@@ -1,4 +1,4 @@
-#  -------------  Define Column Names -------------
+#  -------------  Column Names -------------
 
 ProtocolColumnName = "Protocol"
 SourceNetworkColumnName = "Source Network"
@@ -6,7 +6,7 @@ SourcePortColumnName = "Source Port"
 DestinationNetworkColumnName = "Destination Network"
 DestinationPortColumnName = "Destination Port or Application"
 ReferenceColumnName = "Reference"
-RuleColumnName = "Rule Name"
+RuleColumnName = "Flow Name"
 DescriptionColumnName = "Description"
 SourceZoneColumnName = "Source Zone"
 DestinationZoneColumnName = "Destination Zone"
@@ -23,20 +23,19 @@ ApplicationPortColumnName = "Port"
 
 DrodDownFieldNonStandartProtocol = "Other"
 
-test_filename = "fw_rules_test.xlsx"
+ActionEnable = "Enable"
+ActionDeactivate = "Deactivate"
+ActionDelete = "Delete"
 
 traffic_flows_sheet_name = "Traffic Flows"
 address_book_sheet_name = "Address Book"
 standard_apps_sheet_name = "Applications"
 zones_sheet_name = "Zones"
-
 dropdown_fields_sheet_name = "Dropdown Fields"
+
 output_dir = "output/"
 
-ActionEnable = "Enable"
-ActionDeactivate = "Deactivate"
-ActionDelete = "Delete"
-
+test_filename = "fw_rules_test.xlsx"
 virtual_srx = {
     "device_type": "juniper",
     "host": "10.27.40.180",

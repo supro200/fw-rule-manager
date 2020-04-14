@@ -28,10 +28,10 @@ class ZoneClass:
 # --------------------------------------- Classes - ApplicationClass ---------------------------------------
 class ApplicationClass:
     def __init__(
-            self, standard_apps_dataframe, Protocol="", SourcePort="", DestinationPortList="", Description=""
+            self, standard_apps_dataframe, Protocol="", DestinationPortList="", Description=""
     ):
 
-        self.SourcePort = SourcePort if SourcePort else ""
+        # self.SourcePort = SourcePort if SourcePort else ""
         self.DestinationPortLis = []
 
         dest_port_list = []
@@ -238,7 +238,7 @@ class AccessRuleClass:
         Description="",
         Action="",
         Protocol="",
-        SourcePort="",
+            #  SourcePort="",
         SourceZone="",
         SourceNetwork="",
         DestinationZone="",
@@ -258,7 +258,7 @@ class AccessRuleClass:
 
         self.SourceNetworkAndMask = []
         self.DestinationNetworkAndMask = []
-        self.SourcePort = []
+        #  self.SourcePort = []
         self.DestinationPort = []
 
         #  if Source Network is "any" then Source Network Mask should be empty
