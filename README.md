@@ -21,7 +21,23 @@ Main features:
    * Supports non-TCP/UDP protocols, custom ports and applications
    * Supports validation with real devices
    * Supports filtering, sorting and reporting using standard Excel features
-   
+
+- [Firewall Rule Manager](#firewall-rule-manager)
+  * [How to:](#how-to-)
+    + [Add a new rule](#add-a-new-rule)
+    + [Deactivate existing rule](#deactivate-existing-rule)
+    + [Delete existing rule](#delete-existing-rule)
+  * [How it works](#how-it-works)
+  * [User interface - Excel spreadsheet](#user-interface---excel-spreadsheet)
+    + [Traffic flows](#traffic-flows)
+    + [Address Book](#address-book)
+    + [Zones](#zones)
+    + [Applications](#applications)
+    + [Drop-down Fields](#drop-down-fields)
+  * [CLI options](#cli-options)
+  * [Installation](#installation)
+
+
 ## How to:
 
 ### Add a new rule
